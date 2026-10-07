@@ -13,9 +13,9 @@ must remain clearly marked for community testing until real evidence exists.
 | Teaching uses the existing engine for buttons, axes, triggers, hats, skip, calibration, preview, and local save | `DeviceTeachingSession`; replay-to-teaching tests; per-unit calibration is bound to its definition and local interface hash | Verified in deterministic fixtures |
 | Replayable raw-HID observations exercise the shared capture-to-teaching pipeline | `RawHidInputPipelineTests` replay buttons, D-pad, signed axes, and trigger observations through the existing teaching engine | Verified in deterministic fixtures |
 | Reports use an allowlist and exclude host identity, paths, serials, IP addresses, unrelated inventory, and credentials | `DeviceTeachingTests` and `RawHidInputPipelineTests` privacy assertions; strict report schema v3 | Verified locally |
-| Windows experimental CLI artifact is built from source and contains build identity, dependency notices, and hashes | `.github/workflows/ci.yml`; self-contained `win-x64` publish and VM 101 artifact checks; clean checkout CI uploads the artifact | Local publish verified; required PR CI upload pending |
-| Headless self-test covers runtime/script, synthetic teaching, report validation, output diagnostics, and device enumeration | Linux self-test passed 5/5; self-contained Windows CLI self-test passed 5/5 on VM 101 | Linux and Windows VM verified; required PR CI pending |
-| Release solution build, all tests, and formatting pass | Local Release build; 47 automated tests; `dotnet format --verify-no-changes`; required clean-checkout CI | Local verified; VM 101 integration passed; clean-checkout CI pending |
+| Windows experimental CLI artifact is built from source and contains build identity, dependency notices, and hashes | Main CI run `37666364932` uploaded a self-contained `win-x64` artifact from main commit `1d3d3f78475dc2610574dd1dc94260cf4cfcbbd4`; all 200 files and build identity verified | Verified in GitHub Actions and downloaded artifact |
+| Headless self-test covers runtime/script, synthetic teaching, report validation, output diagnostics, and device enumeration | Linux and VM 101 self-tests passed 5/5; Windows smoke job passed on PR and main CI runs | Verified locally, on VM 101, and in CI |
+| Release solution build, all tests, and formatting pass | Clean-checkout Release build; 47 tests; `dotnet format --verify-no-changes`; required PR check `build-test-format` passed | Verified locally and in required PR CI |
 | No P0/P1 issue remains and an independent review is complete | Independent HID review found and then verified fixes for multi-usage ranges and truthful cancellation evidence; no remaining P0/P1 issues found | Verified |
 | Documentation distinguishes maintainer-tested, contributor-tested, mapping-only, and unverified evidence | README, CONTRIBUTING, HARDWARE_REPORT, HARDWARE_CONTRIBUTION, and PROJECT_STATUS | Verified |
 
@@ -34,7 +34,7 @@ must remain clearly marked for community testing until real evidence exists.
   teaching engine. They do not claim to replace testing Windows `HidP` parsing
   against physical report descriptors.
 
-The phase is complete after the required PR CI and final independent review
-pass, all implementation and documentation changes are committed through the
-repository PR model, and remote `main` is verified at the merged commit. No
-tag or GitHub Release is part of this acceptance document.
+The phase completed through PR #1, merged by squash. The final independent
+review found no P0/P1 issue, required PR checks passed, and remote `main` was
+verified at `1d3d3f78475dc2610574dd1dc94260cf4cfcbbd4`. No tag or GitHub Release
+was created.

@@ -2,8 +2,9 @@
 
 Repository settings were inspected and recorded on 2026-10-07 before the
 Headless Community Bridge changes. The repository remains public, owned by
-`TenchiNeko`, with `main` as its default branch. No collaborators, teams,
-branches, tags, releases, issues, or historical commits were changed.
+`TenchiNeko`, with `main` as its default branch. No ownership, collaborator, or
+team changes were made, and no branch, tag, release, issue, or historical commit
+was deleted. The feature branch was pushed and retained after its PR merge.
 
 ## Contribution and merge model
 
@@ -42,14 +43,15 @@ The exact required check name, `build-test-format` (GitHub Actions app id
 it was required. The successful test-branch run was `37636367335` at commit
 `3a41dfcffef7b2407340f4b2af15c75e7e5d33f0`. The required `build-test-format`
 job runs the Release build, tests, formatting, and Windows artifact publish. It
-depends on `windows-cli-smoke`, which runs the same automated suite plus the
-headless self-test, including its Windows device-enumeration diagnostic, on a
-Windows runner.
+depends on `windows-cli-smoke`, which runs the automated suite plus the
+headless self-test, including Windows device enumeration, on a Windows runner.
+PR #1 passed both checks in run `37665751598`; post-merge main run `37666364932`
+also passed both checks and uploaded the self-contained Windows artifact.
 
 GitHub Actions is enabled and allows all actions. Repository default workflow
 token permissions are read-only; workflows cannot approve pull requests. The
 CI workflow needs only repository contents read access. The Windows artifact
-will use the workflow artifact service, with no repository contents write
+uses the workflow artifact service, with no repository contents write
 permission. SHA pinning is not required by the current repository setting.
 
 ## Approval policy as maintainers emerge
