@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Left stick response curve",
+    "author": "",
+    "description": "A normalized ControllerScript example for a gentler stick response near center."
+  },
+  "source": "on change(LEFT_STICK_X):\n    output.LEFT_STICK_X = sign(LEFT_STICK_X) * abs(LEFT_STICK_X) ** 1.2\n"
+}

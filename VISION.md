@@ -207,7 +207,8 @@ artifacts. Physical controller support remains evidence-based: replay fixtures
 validate software behavior, while contributors provide the physical evidence
 that maintainers cannot synthesize.
 
-The bridge is the current project focus. It keeps AI, broader language work,
-console support, and unrelated frontends outside this phase. Physical-device
-reports and interactive visual checks remain useful community evidence, not a
-reason for remote maintainers to stop software development.
+The bridge is the foundation for the experimental community preview. Physical
+device reports can now extend compatibility beyond hardware maintained by the
+original author. The preview keeps AI, console support, and unrelated frontends
+outside its scope; physical-device reports and interactive visual checks remain
+community evidence and are never inferred from synthetic tests.

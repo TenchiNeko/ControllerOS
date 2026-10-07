@@ -34,7 +34,7 @@ public static class CommandLineParser
 
         bool valid = name switch
         {
-            "devices" or "self-test" or "runtime stop" => commandArguments.Length == 0,
+            "devices" or "self-test" or "version" or "runtime stop" => commandArguments.Length == 0,
             "inspect" => commandArguments.Length == 1,
             "teach" => commandArguments.Length == 1 || commandArguments.Length == 3 && commandArguments[1] == "--model",
             "validate" or "simulate" => commandArguments.Length == 1,
@@ -54,6 +54,7 @@ public static class CommandLineParser
     public static string UsageFor(string command) => command switch
     {
         "devices" => "Usage: controlleros devices [--json]",
+        "version" => "Usage: controlleros version [--json]",
         "inspect" => "Usage: controlleros inspect <controller-id> [--json]",
         "teach" => "Usage: controlleros teach <controller-id> [--model <name>]",
         "validate" => "Usage: controlleros validate <profile-or-report.json> [--json]",

@@ -12,21 +12,23 @@ provides discovery, teaching, validation, report, fixture, and CI tooling.
 
 ### Hardware owners
 
-Use the experimental Windows artifact and headless `controlleros` CLI to
+Use the public experimental Windows ZIP and headless `controlleros` CLI to
 inspect and teach a selected generic HID gamepad or joystick. The complete
 non-programmer workflow is in
 [HARDWARE_CONTRIBUTION.md](HARDWARE_CONTRIBUTION.md). The CLI reuses the core
 teaching engine, saves a reusable local definition and separate per-unit
 calibration, then exports a privacy-bounded report.
 
-Review the report before posting it with the Hardware support report issue
-template. State the retail/model name only if known, connection mode, controls
+Review the report before posting it with the Controller Compatibility Report
+issue form. State the retail/model name only if known, connection mode, controls
 tested or skipped, and evidence level. Generic HID arrays and special functions
 may not be independently observable; describe them as unavailable unless the
 report contains evidence the mapper understands.
 
-The artifact is experimental, distributed through GitHub Actions artifacts,
-and expires after 30 days. No public release or version tag exists yet.
+The release is experimental and does not claim universal controller support.
+Download the versioned ZIP from the Releases page and review its checksum
+before use. The CLI is the supported interface for this preview; the WPF
+desktop has not been interactively tested.
 
 ### Mapping contributors
 
