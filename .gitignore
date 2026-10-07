@@ -1,0 +1,62 @@
+# .NET / Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# JetBrains
+.idea/
+*.sln.iml
+
+# VS Code local settings
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# Test / coverage output
+TestResults/
+coverage/
+coverage.*/
+*.coverage
+*.coveragexml
+
+# Build / packaging
+artifacts/
+dist/
+out/
+publish/
+*.nupkg
+*.snupkg
+
+# Logs and runtime output
+*.log
+logs/
+crashdumps/
+
+# Local controller data and hardware reports
+local-profiles/
+local-calibration/
+hardware-reports/
+*.controller-report.zip
+
+# Local secrets/config overrides
+.env
+.env.*
+!.env.example
+secrets.json
+appsettings.Local.json
+appsettings.*.Local.json
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
