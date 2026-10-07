@@ -71,3 +71,26 @@ documented limitations above. No public tag or release was created.
 The final review evidence, commands, implementation summary, and next community
 contributions are in FINAL_REPORT.md. Stop after final commit; do not begin
 Alpha 0.2 work.
+
+
+## Forward direction
+
+Alpha 0.1 remains complete and is preserved as the initial architectural proof.
+
+The forward project vision is now documented in [VISION.md](VISION.md). The
+project is **headless-first**: future release-critical capabilities should be
+available through reusable core services and CLI/API surfaces rather than
+requiring the original maintainer to operate an interactive desktop.
+
+Highest-value next work, without changing Alpha 0.1 history:
+
+1. expose the existing core through a headless CLI;
+2. capture raw input from physical HID devices;
+3. connect that capture to the existing teaching/calibration engine;
+4. support headless sanitized hardware-report export;
+5. produce automated Windows artifacts for community testers;
+6. let physical hardware owners supply validation evidence and mappings.
+
+No physical controller or graphical desktop is required for the original
+maintainer to continue architecture, runtime, CI, and review work. Hardware
+support must remain explicitly evidence-based.
