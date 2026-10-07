@@ -123,6 +123,12 @@ See:
 - [ACCEPTANCE.md](ACCEPTANCE.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [AGENTS.md](AGENTS.md)
+- [PROJECT_STATUS.md](PROJECT_STATUS.md)
+- [CODEX_START.md](CODEX_START.md)
+
+## License
+
+ControllerOS is licensed under the [Apache License 2.0](LICENSE).
 
 ## Contribution philosophy
 
