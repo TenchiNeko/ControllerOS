@@ -87,9 +87,17 @@ HEADLESS_BRIDGE_FINAL_REPORT.md.
 
 ## Completion state
 
-Alpha 0.1 history remains unchanged. The Headless Community Bridge is complete
-when every item in HEADLESS_BRIDGE_ACCEPTANCE.md is verified. No AI integration,
-console support, or unrelated phase work is included. No tag or GitHub Release
-has been created.
+Alpha 0.1 history remains unchanged. The Headless Community Bridge
+implementation is locally validated but is not phase-complete: GitHub rejected
+the branch push because the authenticated OAuth App token lacks the `workflow`
+scope required to update `.github/workflows/ci.yml`. PR CI, the Windows smoke
+job, and artifact upload therefore remain unverified. The exact rejection and
+remaining completion steps are recorded in HEADLESS_BRIDGE_FINAL_REPORT.md.
+
+After the owner refreshes the existing GitHub CLI authentication with the
+required scope, push the existing branch, complete the PR checks, merge under
+the configured ruleset, and verify remote `main`. No AI integration, console
+support, or unrelated phase work is included. No tag or GitHub Release has
+been created.
 
 The forward project direction remains documented in [VISION.md](VISION.md).
