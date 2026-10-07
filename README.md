@@ -1,7 +1,7 @@
 <h1 align="center">🎮 ControllerOS</h1>
 
 <p align="center">
-  <strong>Program your controller. Teach it new hardware. Share what you discover.</strong>
+  <strong>ControllerOS — Program your controller. Teach it new hardware. Share what you discover.</strong>
 </p>
 
 <p align="center">
@@ -16,7 +16,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TenchiNeko/ControllerOS/releases"><strong>Releases</strong></a>
+  <a href="https://github.com/TenchiNeko/ControllerOS/releases/download/v0.1.0-alpha.1/controlleros-0.1.0-alpha.1-win-x64.zip"><strong>Download Windows ZIP · v0.1.0-alpha.1</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/TenchiNeko/ControllerOS/releases/tag/v0.1.0-alpha.1"><strong>Release notes</strong></a>
   &nbsp;·&nbsp;
   <a href="https://github.com/TenchiNeko/ControllerOS/actions/workflows/ci.yml"><strong>Experimental builds</strong></a>
   &nbsp;·&nbsp;
@@ -38,7 +40,7 @@ A second path lets a hardware owner **teach the system about an unfamiliar contr
 | Event handlers, state, conditions, math, timed button actions, and analog transforms through ControllerScript. | Inspect supported raw HID controls, guide a teaching session, and save device mappings separately from per-unit calibration. | Use the Windows CLI over PowerShell or SSH, run deterministic synthetic tests, and validate with CI. |
 
 > [!NOTE]
-> **Experimental community preview.** The controller runtime, automated tests, and Windows virtual-device loopback have been verified. **No physical controller model has yet been maintainer-tested.** Real-world HID compatibility and the optional desktop GUI still need outside testing.
+> **Experimental community preview, v0.1.0-alpha.1.** The controller runtime, automated tests, and Windows virtual-device loopback have been verified. **No physical controller model has yet been maintainer-tested, and universal controller support is not claimed.** Real-world HID compatibility and the optional desktop GUI still need outside testing.
 
 ## How it works
 
@@ -55,17 +57,19 @@ flowchart TD
     G --> H["Community mapping contributions"]
 ```
 
-The core is independent of the Windows desktop. The CLI exists today; an optional WPF frontend also exists, and future AI or visual editors are intended to use the **same validated runtime**, not separate automation engines.
+Windows HID adapters translate observed device-specific controls into a normalized set of buttons, sticks, triggers, and supported D-pad controls. ControllerScript profiles use those common controls, so their behavior does not depend on a device's raw control numbering. The CLI exists today; an optional WPF frontend also exists, and future AI or visual editors are intended to use the **same validated runtime**, not separate automation engines.
 
 ## Get started on Windows
 
 **Windows x64 · experimental · no .NET SDK required for the self-contained CLI build**
 
-1. Check [Releases](https://github.com/TenchiNeko/ControllerOS/releases) for a published prerelease. If none is available, open the [latest successful `main` CI run](https://github.com/TenchiNeko/ControllerOS/actions/workflows/ci.yml?query=branch%3Amain) and download its `controlleros-experimental-win-x64-...` artifact. GitHub may require sign-in for Actions artifacts, which currently expire after 30 days.
-2. Extract the ZIP, review `BUILD-INFO.txt`, and open PowerShell in the extracted folder.
-3. Run the self-test and list available generic HID controllers:
+1. Download the [Windows x64 ZIP](https://github.com/TenchiNeko/ControllerOS/releases/download/v0.1.0-alpha.1/controlleros-0.1.0-alpha.1-win-x64.zip) and its `.zip.sha256` sidecar from the [public prerelease](https://github.com/TenchiNeko/ControllerOS/releases/tag/v0.1.0-alpha.1). Verify the checksum by following the [hardware guide](HARDWARE_CONTRIBUTION.md).
+2. Extract the ZIP, review `BUILD-INFO.txt`, and open PowerShell in the extracted folder. Installing the .NET SDK is not required.
+3. Check the command list, executable version/commit, and installation, then list available generic HID controllers:
 
 ```powershell
+.\controlleros.exe --help
+.\controlleros.exe version --json
 .\controlleros.exe self-test --json
 .\controlleros.exe devices
 ```
@@ -77,7 +81,13 @@ If a device is listed, use the **temporary device ID shown by your own output** 
 .\controlleros.exe teach controller-001
 ```
 
-The teaching flow walks through observable controls, supports skipping unsupported ones, previews the generated mapping, and asks before saving it.
+The teaching flow walks through observable controls, supports skipping unsupported ones, previews the generated mapping, and asks before saving it. No physical-device definitions are bundled; teaching creates a local mapping and per-unit calibration. To inspect and validate the sanitized report, run:
+
+```powershell
+.\controlleros.exe export-report "$env:LOCALAPPDATA\ControllerOS\reports\latest.json" .\hardware-report.json
+.\controlleros.exe validate .\hardware-report.json
+Get-Content .\hardware-report.json
+```
 
 **Full walkthrough:** [Download, teach, validate, and submit a controller report →](HARDWARE_CONTRIBUTION.md)
 
@@ -121,9 +131,11 @@ You don't need to know C# or submit code. A useful first contribution can be a c
 1. Follow the [hardware contributor guide](HARDWARE_CONTRIBUTION.md).
 2. Run device discovery and teaching on your own Windows machine.
 3. **Review your sanitized report** before posting.
-4. Open a [hardware-support issue](https://github.com/TenchiNeko/ControllerOS/issues/new/choose) describing what worked, what didn't, and the connection mode.
+4. Choose the **Controller Compatibility Report** form from [New issue](https://github.com/TenchiNeko/ControllerOS/issues/new/choose), then describe what worked, what did not, and the connection mode.
 
 Every real device report helps distinguish an implementation that passed synthetic tests from one that works with hardware in the field. Claims are tracked as *maintainer-tested*, *contributor-tested*, *mapping-only*, or *unverified*.
+
+Repeated hardware reports and code reviews can help new maintainers emerge and make the project easier for its community to sustain.
 
 [Contributing guide](CONTRIBUTING.md) · [Issues](https://github.com/TenchiNeko/ControllerOS/issues) · [Hardware report schema](HARDWARE_REPORT.md)
 
