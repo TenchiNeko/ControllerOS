@@ -2,12 +2,19 @@
 
 Last updated: 2026-10-07
 
-## Release history
+## Current release
 
-**Alpha 0.1 — implementation complete; public release not published.**
+**ControllerOS v0.1.0-alpha.1 — public experimental prerelease.**
 
-The Alpha 0.1 acceptance and final report are historical records. This status
-file tracks the current Headless Community Bridge phase separately.
+The [release page](https://github.com/TenchiNeko/ControllerOS/releases/tag/v0.1.0-alpha.1)
+provides the self-contained Windows x64 CLI package. Tag `v0.1.0-alpha.1`
+points to release commit `3634d7ddbc2cfc01af79bd62678f633febd49d98`.
+Physical controller compatibility remains experimental and needs community
+validation; this release does not claim universal support.
+
+The Alpha 0.1 and Headless Community Bridge acceptance documents and final
+reports remain historical records. This status file tracks the current release
+state while preserving those earlier results.
 
 ## Alpha 0.1 milestones (historical snapshot)
 
@@ -94,14 +101,22 @@ HEADLESS_BRIDGE_FINAL_REPORT.md.
 ## Completion state
 
 Alpha 0.1 history remains unchanged. The Headless Community Bridge
-implementation is COMPLETE. PR #1 merged by squash, and `origin/main` was
-verified at `1d3d3f78475dc2610574dd1dc94260cf4cfcbbd4`. Required check
-`build-test-format`, the Windows smoke job, and the post-merge main CI run all
-passed. The main CI artifact is available for experimental community testing;
-no public release or version tag was created.
+implementation is COMPLETE. At that phase's completion, PR #1 merged by squash
+and `origin/main` was verified at
+`1d3d3f78475dc2610574dd1dc94260cf4cfcbbd4`; its required checks and post-merge
+CI passed. The subsequent community-launch PR passed CI and merged as release
+commit `3634d7ddbc2cfc01af79bd62678f633febd49d98`. Its `build-test-format`
+and `windows-cli-smoke` jobs passed, including Release build, 48/48 tests,
+format verification, Windows CLI smoke, and versioned package publication.
+The public prerelease and verified artifact are recorded in
+[COMMUNITY_LAUNCH_REPORT.md](COMMUNITY_LAUNCH_REPORT.md).
 
-No physical controller was available, so physical HID behavior remains
-community-test-needed. No AI integration, console support, or unrelated phase
-work is included.
+The packaged CLI was launched on Windows VM 101 without a .NET SDK: build
+identity matched the release commit, all 5 headless self-test checks passed,
+device enumeration ran with no physical controller attached, and the starter
+profile validated and simulated. The published ZIP checksum and all 204
+included file checksums passed. No physical controller was available, so
+physical HID behavior remains community-test-needed. No AI integration,
+console support, or unrelated phase work is included.
 
 The forward project direction remains documented in [VISION.md](VISION.md).
