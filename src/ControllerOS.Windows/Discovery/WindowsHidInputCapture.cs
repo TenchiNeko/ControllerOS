@@ -63,6 +63,24 @@ public sealed partial class WindowsHidDeviceEnumerator
         }
     }
 
+    internal static bool TryGetScalarUsageIds(
+        bool isRange, ushort usageMinimum, ushort usageMaximum, ushort reportCount, out ushort[] usageIds)
+    {
+        usageIds = [];
+        // ponytail: repeated single-usage arrays stay unmapped; use HidP_GetUsageValueArray before exposing them.
+        if (reportCount is 0 or > 128 || usageMaximum < usageMinimum || (!isRange && reportCount != 1))
+            return false;
+
+        uint availableUsages = isRange ? (uint)usageMaximum - usageMinimum + 1 : 1;
+        if (reportCount > availableUsages)
+            return false;
+
+        usageIds = new ushort[reportCount];
+        for (uint index = 0; index < reportCount; index++)
+            usageIds[index] = checked((ushort)(usageMinimum + index));
+        return true;
+    }
+
     private sealed class WindowsHidReportDecoder : IRawHidReportDecoder
     {
         private readonly IntPtr preparsedData;
@@ -74,7 +92,7 @@ public sealed partial class WindowsHidDeviceEnumerator
         private readonly bool reportIdsEnabled;
 
         public RawDeviceDescriptor Descriptor { get; }
-        public int IgnoredValueArrayCount { get; }
+        public int UnsupportedValueCapabilityCount { get; }
 
         public WindowsHidReportDecoder(IntPtr preparsedData, HidCapabilities capabilities, WindowsHidDevice device, string? retailModelName)
         {
@@ -82,11 +100,11 @@ public sealed partial class WindowsHidDeviceEnumerator
             if (Marshal.SizeOf<HidpButtonCaps>() != 72 || Marshal.SizeOf<HidpValueCaps>() != 72)
                 throw new PlatformNotSupportedException("The Windows HID capability structure layout is unsupported on this runtime.");
             List<ButtonTarget> buttonTargets = ReadButtons(preparsedData, capabilities.NumberInputButtonCaps);
-            (List<ValueTarget> valueTargets, List<HatTarget> hatTargets, int ignoredArrays) = ReadValues(preparsedData, capabilities.NumberInputValueCaps);
+            (List<ValueTarget> valueTargets, List<HatTarget> hatTargets, int unsupportedValueCapabilities) = ReadValues(preparsedData, capabilities.NumberInputValueCaps);
             if (buttonTargets.Count + valueTargets.Count + (hatTargets.Count * 4) is 0 or > 128)
                 throw new InvalidOperationException("Selected HID interface must expose 1..128 independent scalar input controls.");
             this.maximumUsages = 128;
-            IgnoredValueArrayCount = ignoredArrays;
+            UnsupportedValueCapabilityCount = unsupportedValueCapabilities;
 
             ButtonTarget[] assignedButtons = buttonTargets.OrderBy(target => target.ReportId).ThenBy(target => target.UsagePage).ThenBy(target => target.LinkCollection).ThenBy(target => target.Usage)
                 .Select((target, index) => target with { Id = $"button-{index}" }).ToArray();
@@ -229,19 +247,18 @@ public sealed partial class WindowsHidDeviceEnumerator
 
             var result = new List<ValueTarget>();
             var hats = new List<HatTarget>();
-            int ignoredArrays = 0;
+            int unsupportedCapabilities = 0;
             foreach (HidpValueCaps cap in caps.Take(length))
             {
-                if (cap.ReportCount != 1)
-                {
-                    ignoredArrays++;
-                    continue;
-                }
                 ushort usageMinimum = cap.IsRange != 0 ? cap.Data.Range.UsageMinimum : cap.Data.NotRange.Usage;
                 ushort usageMaximum = cap.IsRange != 0 ? cap.Data.Range.UsageMaximum : usageMinimum;
-                if (usageMaximum < usageMinimum || cap.BitSize is 0 or > 32 || cap.LogicalMinimum >= cap.LogicalMaximum)
-                    throw new InvalidOperationException("Selected HID interface exposes an unsupported or excessive input value range.");
-                for (uint usage = usageMinimum; usage <= usageMaximum; usage++)
+                if (!TryGetScalarUsageIds(cap.IsRange != 0, usageMinimum, usageMaximum, cap.ReportCount, out ushort[] usageIds) ||
+                    cap.BitSize is 0 or > 32 || cap.LogicalMinimum >= cap.LogicalMaximum)
+                {
+                    unsupportedCapabilities++;
+                    continue;
+                }
+                foreach (ushort usage in usageIds)
                 {
                     if (cap.UsagePage == 1 && usage == 0x39)
                     {
@@ -249,7 +266,7 @@ public sealed partial class WindowsHidDeviceEnumerator
                             hats.Add(new(cap.UsagePage, (ushort)usage, cap.LinkCollection, cap.ReportId, cap.BitSize,
                                 cap.LogicalMinimum, cap.LogicalMaximum, HasNull: true));
                         else
-                            ignoredArrays++;
+                            unsupportedCapabilities++;
                         continue;
                     }
                     result.Add(new(string.Empty, cap.UsagePage, (ushort)usage, cap.LinkCollection, cap.ReportId,
@@ -258,7 +275,7 @@ public sealed partial class WindowsHidDeviceEnumerator
                         throw new InvalidOperationException("Selected HID interface exposes more than 128 independent input controls.");
                 }
             }
-            return (result, hats, ignoredArrays);
+            return (result, hats, unsupportedCapabilities);
         }
 
         private static int SignExtend(uint value, ushort bitSize)
@@ -301,7 +318,7 @@ public sealed partial class WindowsHidDeviceEnumerator
         }
 
         public RawDeviceDescriptor Descriptor => decoder.Descriptor;
-        public int IgnoredValueArrayCount => ((WindowsHidReportDecoder)decoder).IgnoredValueArrayCount;
+        public int UnsupportedValueCapabilityCount => ((WindowsHidReportDecoder)decoder).UnsupportedValueCapabilityCount;
         public TimeSpan Timestamp => clock.Elapsed;
 
         /// <summary>A local-only hash used to pair calibration with the selected HID interface.</summary>

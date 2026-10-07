@@ -61,10 +61,13 @@ dotnet format ControllerOS.sln --verify-no-changes --no-restore
 ```
 
 The current workspace Release build passes with zero warnings/errors; the suite
-passes 44/44 tests; format verification passes; and `controlleros self-test
---json` passes 5/5 checks on Linux. The self-test marks Windows-only output and
-HID enumeration as not applicable on Linux. A self-contained `win-x64` publish
-also succeeds locally and includes the pinned output dependency and notices.
+passes 47/47 tests; format verification passes; and `controlleros self-test
+--json` passes 5/5 applicable checks on Linux. A self-contained `win-x64` CLI
+passed its artifact hash check and all 5 self-test checks on VM 101. The Windows
+integration probe opened the virtual Xbox HID interface, enumerated 14
+controls, canceled an idle raw read, verified normalized XInput output, and
+confirmed clean disconnect and interface removal. No physical gamepad was
+attached; physical HID teaching remains community-test-needed.
 
 The phase acceptance ledger is HEADLESS_BRIDGE_ACCEPTANCE.md. Its final review
 evidence, CI artifact result, implementation summary, and limitations are in
@@ -75,9 +78,9 @@ HEADLESS_BRIDGE_FINAL_REPORT.md.
 - No physical controller was available. Physical button, stick, trigger, and
   D-pad behavior remains community-test-needed; replay fixtures validate only
   the raw-report-to-teaching software path.
-- The Windows VM was unavailable over SSH, and the reachable Proxmox inventory
-  contained no Windows VM. A Windows CI runner executes the automated suite and
-  headless self-test, but no physical HID device is attached there.
+- VM 101 was reached using the documented Windows-worker connection. The VM
+  had no generic gamepad or joystick collection; its virtual Xbox device only
+  validated the Windows adapter and virtual output path.
 - The WPF interface was not interactively launched in this phase. Visual
   behavior remains interactive-test-needed and is outside the headless bridge
   acceptance gate.
@@ -88,11 +91,12 @@ HEADLESS_BRIDGE_FINAL_REPORT.md.
 ## Completion state
 
 Alpha 0.1 history remains unchanged. The Headless Community Bridge
-implementation is locally validated but is not phase-complete: GitHub rejected
-the branch push because the authenticated OAuth App token lacks the `workflow`
-scope required to update `.github/workflows/ci.yml`. PR CI, the Windows smoke
-job, and artifact upload therefore remain unverified. The exact rejection and
-remaining completion steps are recorded in HEADLESS_BRIDGE_FINAL_REPORT.md.
+implementation is locally validated, including on VM 101, but is not
+phase-complete: GitHub rejected the branch push because the authenticated OAuth
+App token lacks the `workflow` scope required to update
+`.github/workflows/ci.yml`. PR CI and the CI artifact upload therefore remain
+unverified. The exact rejection and remaining completion steps are recorded in
+HEADLESS_BRIDGE_FINAL_REPORT.md.
 
 After the owner refreshes the existing GitHub CLI authentication with the
 required scope, push the existing branch, complete the PR checks, merge under

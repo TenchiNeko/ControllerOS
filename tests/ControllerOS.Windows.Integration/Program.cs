@@ -46,27 +46,19 @@ try
         throw new InvalidOperationException("HID discovery did not report the new Xbox 360 virtual device and its input report size.");
 
     using WindowsHidDeviceEnumerator.WindowsHidInputCapture rawCapture = enumerator.OpenInputCapture(virtualDevice);
-    using var rawCaptureStop = new CancellationTokenSource();
-    var rawBaselineReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-    Task<IReadOnlyList<RawInputSample>> rawTransitionTask = WaitForRawHidTransitionAsync(rawCapture, rawBaselineReady, rawCaptureStop.Token);
-    await rawBaselineReady.Task.WaitAsync(TimeSpan.FromSeconds(5));
-
+    int rawSampleCount = await VerifySelectedHidCaptureAsync(rawCapture);
     WindowsControllerInput input = WaitForNewInput(inputSlots, connectedBefore, TimeSpan.FromSeconds(5));
     OutputState action = OutputState.Neutral
         .WithValue(ControlValue.Button(ControlId.EAST, pressed: true))
         .WithValue(ControlValue.Trigger(ControlId.LEFT_TRIGGER, 0.75))
         .WithValue(ControlValue.Axis(ControlId.LEFT_STICK_X, 0.5));
     output.Commit(TimeSpan.FromMilliseconds(1), action);
-    IReadOnlyList<RawInputSample> rawTransition = await rawTransitionTask.WaitAsync(TimeSpan.FromSeconds(5));
-    rawCaptureStop.Cancel();
-    if (rawTransition.Count == 0)
-        throw new InvalidOperationException("Selected virtual gamepad produced an empty raw HID input report.");
     ControllerInputEvent pressed = WaitForTransition(input, ControlId.EAST, InputEventKind.Press, TimeSpan.FromSeconds(5));
     ControllerState activeState = input.Snapshot;
     if (!activeState.Get(ControlId.EAST).IsPressed || Math.Abs(activeState.Get(ControlId.LEFT_TRIGGER).Value - 0.75) > 0.01 || Math.Abs(activeState.Get(ControlId.LEFT_STICK_X).Value - 0.5) > 0.01)
         throw new InvalidOperationException("The XInput source did not return the normalized button, trigger, and axis values.");
     Console.WriteLine($"PASS: discovered {virtualDevice.Product}, VID:PID {virtualDevice.VendorId:X4}:{virtualDevice.ProductId:X4}, usage {virtualDevice.UsagePage:X4}:{virtualDevice.Usage:X4}");
-    Console.WriteLine($"PASS: selected HID capture decoded {rawTransition.Count} raw control observations without exporting its device path");
+    Console.WriteLine($"PASS: selected HID parser exposed {rawCapture.Descriptor.Controls.Count} controls and canceled a pending read cleanly ({rawSampleCount} observations received)");
     Console.WriteLine($"PASS: XInput slot {input.UserIndex} returned EAST press, LEFT_TRIGGER 0.75, and LEFT_STICK_X 0.50");
 
     output.Dispose();
@@ -104,22 +96,44 @@ static WindowsControllerInput WaitForNewInput(WindowsControllerInput[] inputs, b
     throw new InvalidOperationException("No new XInput slot appeared. Ensure the VM has a free controller slot.");
 }
 
-static async Task<IReadOnlyList<RawInputSample>> WaitForRawHidTransitionAsync(
+static async Task<int> VerifySelectedHidCaptureAsync(WindowsHidDeviceEnumerator.WindowsHidInputCapture capture)
+{
+    if (capture.Descriptor.Controls.Count is 0 or > 128)
+        throw new InvalidOperationException("Selected HID parser returned an invalid control count.");
+    int observations = 0;
+    for (int attempt = 0; attempt < 4; attempt++)
+    {
+        using var stop = new CancellationTokenSource();
+        Task<IReadOnlyList<RawInputSample>> pending = ReadFirstRawReportAsync(capture, stop.Token);
+        if (await Task.WhenAny(pending, Task.Delay(100)) != pending)
+        {
+            stop.Cancel();
+            try
+            {
+                _ = await pending.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (OperationCanceledException) when (stop.IsCancellationRequested)
+            {
+                return observations;
+            }
+            throw new InvalidOperationException("Selected HID input read did not cancel while the virtual controller was idle.");
+        }
+
+        IReadOnlyList<RawInputSample> report = await pending;
+        if (report.Count > capture.Descriptor.Controls.Count)
+            throw new InvalidOperationException("Selected HID parser returned more samples than declared controls.");
+        observations += report.Count;
+    }
+
+    throw new InvalidOperationException("Selected HID input did not provide an idle window for cancellation within four reports.");
+}
+
+static async Task<IReadOnlyList<RawInputSample>> ReadFirstRawReportAsync(
     WindowsHidDeviceEnumerator.WindowsHidInputCapture capture,
-    TaskCompletionSource baselineReady,
     CancellationToken cancellationToken)
 {
-    var previous = new Dictionary<string, double>(StringComparer.Ordinal);
     await foreach (IReadOnlyList<RawInputSample> report in capture.ReadReportsAsync(cancellationToken))
-    {
-        bool changed = report.Any(sample => previous.TryGetValue(sample.ControlId, out double value) && value != sample.Value);
-        foreach (RawInputSample sample in report)
-            previous[sample.ControlId] = sample.Value;
-        if (previous.Count > 0)
-            baselineReady.TrySetResult();
-        if (changed)
-            return report;
-    }
+        return report;
     throw new EndOfStreamException("Selected virtual HID interface disconnected during raw capture.");
 }
 

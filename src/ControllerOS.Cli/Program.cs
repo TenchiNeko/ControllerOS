@@ -142,7 +142,7 @@ public static class ControllerOsCli
         string message = $"{controllerId}: VID:PID {descriptor.Match.VendorId:X4}:{descriptor.Match.ProductId:X4}, " +
             $"revision {FormatHex(descriptor.Revision)}, usage {descriptor.Match.UsagePage:X4}:{descriptor.Match.Usage:X4}, " +
             $"connection {descriptor.ConnectionMode}; {descriptor.Controls.Count} scalar controls." +
-            (capture.IgnoredValueArrayCount > 0 ? $" {capture.IgnoredValueArrayCount} value arrays or unsupported hats are not mapped." : string.Empty) +
+            (capture.UnsupportedValueCapabilityCount > 0 ? $" {capture.UnsupportedValueCapabilityCount} value capabilities are unsupported and were not mapped." : string.Empty) +
             Environment.NewLine + controls;
         return new(message, new
         {
@@ -154,7 +154,7 @@ public static class ControllerOsCli
             usage = descriptor.Match.Usage,
             descriptor.ConnectionMode,
             controls = descriptor.Controls,
-            unsupportedValueCapabilities = capture.IgnoredValueArrayCount
+            unsupportedValueCapabilities = capture.UnsupportedValueCapabilityCount
         });
     }
 

@@ -1,8 +1,9 @@
 # Headless Community Bridge phase report
 
-**Status: implementation and local validation are complete; repository CI and
-artifact acceptance are pending an authentication-scope update.** This phase
-has not been marked complete or merged.
+**Status: implementation, local validation, and Windows VM integration are
+complete; repository CI and artifact acceptance are pending an
+authentication-scope update.** This phase has not been marked complete or
+merged.
 
 ## Source and governance
 
@@ -36,13 +37,24 @@ has not been marked complete or merged.
 ## Local verification
 
 - Release solution build succeeded with zero warnings and errors.
-- Automated tests passed: 44/44.
+- Automated tests passed: 47/47, including multi-usage HID range expansion,
+  repeated-usage array rejection, and capability expansion bounds.
 - `dotnet format ControllerOS.sln --verify-no-changes --no-restore` passed.
 - Linux `controlleros self-test --json` passed 5/5 applicable checks; Windows
   output and HID enumeration were correctly reported as not applicable.
+- A self-contained `win-x64` CLI package passed hash-manifest verification and
+  `controlleros self-test --json` passed 5/5 checks on VM 101.
+- The self-contained Windows integration probe passed on VM 101: it opened the
+  selected virtual Xbox HID interface, exposed 14 controls, canceled an idle
+  input read, verified XInput button/trigger/stick normalization, observed
+  disconnect neutralization, and confirmed virtual-interface removal.
 - `git diff --check` passed.
-- Independent review found no P0/P1 issues after the runtime and calibration
-  fixes.
+- Independent review identified a HID multi-usage-range capability gap and an
+  inaccurate cancellation success message. The parser now expands one scalar
+  target for each reported usage, keeps repeated-usage value arrays explicitly
+  unsupported, and bounds expansion to 128 fields. The VM probe now reports
+  cancellation success only after observing cancellation. Follow-up review
+  found no remaining P0/P1 issues.
 
 ## Pending checks and evidence limits
 
@@ -55,10 +67,11 @@ has not been marked complete or merged.
   No token was exposed, no alternate credential was used, and no bypass of the
   repository governance model was attempted. The remote feature branch remains
   at its earlier governance-documentation commit.
-- The Windows VM was unavailable over SSH and no physical controller was
-  available. Native HID parsing on physical devices remains
-  **community-test-needed**; replay fixtures verify deterministic software
-  behavior but do not claim physical-device validation.
+- VM 101 was reached through the documented Windows-worker route. It exposed
+  no generic gamepad/joystick collection; the integration probe used only the
+  Xbox virtual output device. Physical controller capture and teaching remain
+  **community-test-needed**. Replay fixtures validate the deterministic
+  raw-report-to-teaching path without claiming physical-device validation.
 - The WPF UI was not interactively launched; visual behavior remains
   **interactive-test-needed**.
 
