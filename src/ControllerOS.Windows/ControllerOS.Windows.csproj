@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <HIDMaestroVersion>1.11.0</HIDMaestroVersion>
+    <HIDMaestroPackageRoot>$(MSBuildThisFileDirectory)..\..\artifacts\dependencies\HIDMaestro\$(HIDMaestroVersion)</HIDMaestroPackageRoot>
+    <HIDMaestroArchive>$(HIDMaestroPackageRoot)\HIDMaestro-v$(HIDMaestroVersion).zip</HIDMaestroArchive>
+    <HIDMaestroExtracted>$(HIDMaestroPackageRoot)\extracted</HIDMaestroExtracted>
+    <HIDMaestroAssembly>$(HIDMaestroExtracted)\HIDMaestro.Core.dll</HIDMaestroAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ControllerOS.Core\ControllerOS.Core.csproj" />
+    <Reference Include="HIDMaestro.Core">
+      <HintPath>$(HIDMaestroAssembly)</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Content Include="$(HIDMaestroExtracted)\LICENSE" Link="HIDMaestro\LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(HIDMaestroExtracted)\THIRD-PARTY-NOTICES.txt" Link="HIDMaestro\THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="AcquirePinnedHIDMaestro" BeforeTargets="ResolveAssemblyReferences">
+    <DownloadFile SourceUrl="https://github.com/hifihedgehog/HIDMaestro/releases/download/v$(HIDMaestroVersion)/HIDMaestro-v$(HIDMaestroVersion).zip"
+                  DestinationFolder="$(HIDMaestroPackageRoot)"
+                  DestinationFileName="HIDMaestro-v$(HIDMaestroVersion).zip"
+                  Condition="!Exists('$(HIDMaestroArchive)')" />
+    <GetFileHash Files="$(HIDMaestroArchive)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_HIDMaestroArchiveHash" />
+    </GetFileHash>
+    <Error Condition="'$(_HIDMaestroArchiveHash)' != '51C5A957FEB7573CF60EE8F30F791DD013053208EAF23D013E28B438303FBDF2'"
+           Text="HIDMaestro v$(HIDMaestroVersion) archive checksum mismatch. Remove $(HIDMaestroArchive) and retry the build." />
+    <Unzip SourceFiles="$(HIDMaestroArchive)"
+           DestinationFolder="$(HIDMaestroExtracted)"
+           Condition="!Exists('$(HIDMaestroAssembly)') Or !Exists('$(HIDMaestroExtracted)\LICENSE') Or !Exists('$(HIDMaestroExtracted)\THIRD-PARTY-NOTICES.txt')" />
+    <Error Condition="!Exists('$(HIDMaestroAssembly)')"
+           Text="HIDMaestro v$(HIDMaestroVersion) archive did not contain HIDMaestro.Core.dll." />
+    <GetFileHash Files="$(HIDMaestroAssembly)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_HIDMaestroAssemblyHash" />
+    </GetFileHash>
+    <Error Condition="'$(_HIDMaestroAssemblyHash)' != '36CAEFc2F457A7C69ECA10E44D9E9750A3991F256EAFEa6000DCA0E450E0635C'"
+           Text="HIDMaestro.Core.dll checksum mismatch. Remove $(HIDMaestroPackageRoot) and retry the build." />
+  </Target>
+</Project>

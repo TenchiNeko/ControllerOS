@@ -1,147 +1,141 @@
 # ControllerOS
 
-**A programmable controller runtime with self-learning hardware support.**
+**A programmable controller runtime with a hardware-independent core.**
 
-ControllerOS is an open-source experiment in treating game controllers as programmable devices rather than fixed button maps.
+ControllerOS Alpha 0.1 is an early Windows application for mapping normalized
+controller input through a restricted script runtime and sending output to a
+debug sink or an Xbox-style virtual controller.
 
-The project is built around four ideas:
+The alpha includes:
 
-1. **Universal controller model** — normalize buttons, sticks, triggers, hats, and other controls into a hardware-independent representation.
-2. **ControllerScript** — a sandboxed, Python-like language for controller behavior: remapping, timing, layers, state, analog transforms, sequences, and accessibility workflows.
-3. **Teach unknown hardware** — if a controller is not recognized, guide the user through a calibration/mapping flow and produce a reusable device definition.
-4. **One runtime, multiple interfaces** — text code, a future visual editor, and future AI-assisted configuration should all produce the same validated internal profile representation.
+- a portable model for standard buttons, axes, and triggers
+- deterministic synthetic input, recorded output, and timestamped scenarios
+- a sandboxed ControllerScript compiler and runtime with yielding timers
+- keyboard test input and Windows HID enumeration
+- versioned profile and device-definition JSON with local calibration storage
+- a teaching and report workflow exercised with a synthetic unknown device
+- a Windows virtual Xbox output adapter and desktop editor/runtime
 
-## Why this exists
-
-Most controller tools are either device-specific, configuration-heavy, or centered on fixed remapping and macros. ControllerOS explores a different abstraction:
+## Controller path
 
 ```text
-Physical controller
-        ↓
-device discovery / mapping
-        ↓
-normalized ControllerState
-        ↓
-ControllerScript runtime
-        ↓
-validated output state
-        ↓
-virtual controller
-        ↓
-game / application
+keyboard / synthetic / Windows XInput input
+                   ↓
+          normalized controller state
+                   ↓
+       ControllerScript runtime and timers
+                   ↓
+             normalized output
+                   ↓
+    debug preview / virtual Xbox output
 ```
 
-The long-term goal is that a user should be able to plug in a supported controller and program its behavior without needing to understand the controller's raw HID layout.
+Windows HID enumeration lists interfaces and matches device definitions. The
+teaching screen currently uses synthetic raw samples; it does not collect raw
+reports from a physical HID device. The desktop's normalized input inspector
+shows the active test or Windows XInput source.
 
-If the device is unknown, ControllerOS should help the user teach the system how it behaves.
+## ControllerScript
 
-## Alpha 0.1 target
-
-The first public alpha is intentionally narrow:
-
-- Windows-first
-- synthetic controller source for fully automated development
-- keyboard-backed test input
-- normalized controller state
-- small deterministic ControllerScript runtime
-- asynchronous timers / waits
-- virtual Xbox-style output
-- unknown-device discovery
-- guided standard-control calibration
-- portable device-definition files
-- hardware-report export for community contributions
-- automated conformance tests
-- documented contribution path
-
-Alpha 0.1 is **not** intended to support every proprietary controller feature, consoles, anti-cheat circumvention, or every advanced automation feature.
-
-## ControllerScript concept
+ControllerScript v0.1 supports `press`, `release`, and `change` handlers;
+state, conditions, non-recursive functions, button output calls, normalized
+output writes, and non-blocking waits.
 
 ```python
 on press(SOUTH):
+    press(EAST)
     wait(100ms)
-    tap(EAST)
+    release(EAST)
 
-on axis(RIGHT_X):
-    output.RIGHT_X = curve(RIGHT_X, 1.35)
-
-on hold(LEFT_BUMPER):
-    use_layer("precision")
+on change(RIGHT_X):
+    output.RIGHT_X = RIGHT_X * 1.35
 ```
 
-ControllerScript is intended to feel familiar while remaining restricted to the controller domain. Community profiles should not receive arbitrary filesystem, process, network, registry, or native-code access.
+It has no loops, layers, imports, collections, or host-computer APIs. See
+[CONTROLLERSCRIPT.md](CONTROLLERSCRIPT.md) for the supported syntax and limits.
 
-## Community hardware model
+## Devices and community reports
 
-ControllerOS will not require maintainers to physically own every controller.
+The device-definition format separates reusable raw-to-standard mappings from
+per-unit calibration. The desktop can enumerate Windows HID interfaces, show
+known/unknown status when identifiers match a local definition, and run the
+teaching steps against the built-in synthetic unknown-device fixture. Reports
+contain only allowlisted device, capability, mapping, calibration, version, and
+validation fields. Raw control labels are replaced with anonymous ordinal IDs
+in exported reports. Review a report before sharing it.
+The exact serialized v2 property names, types, enum values, and validation
+rules are in [HARDWARE_REPORT.md](HARDWARE_REPORT.md).
 
-For recognized devices, a stored mapping is loaded.
+No physical controller model is claimed as supported in this alpha. Hardware
+support evidence must use the levels in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-For unknown devices, the user should be able to run a guided discovery flow:
+## Windows desktop
 
-```text
-Unknown controller detected
-        ↓
-Press SOUTH
-Press EAST
-Move left stick
-Move right stick
-Press triggers
-Identify remaining controls
-        ↓
-Generate device definition
-        ↓
-Validate locally
-        ↓
-Optional sanitized hardware report
-        ↓
-Community contribution
+The desktop includes profile JSON load/save, source editing, compile/runtime
+diagnostics, keyboard or XInput input, live normalized input/output views,
+teaching, report export, start/stop, and an emergency disable control. The
+keyboard map is shown in the Devices tab: WASD controls the left stick, arrow
+keys control the right stick, Space/E/Q/R are SOUTH/EAST/WEST/NORTH, U/I are
+bumpers, Shift keys are triggers, Enter/Tab/F1 are MENU/VIEW/GUIDE, Ctrl keys
+click the sticks, and NumPad 8/2/4/6 drive the D-pad. Escape disables a running
+profile and releases outputs.
+
+The virtual Xbox adapter uses HIDMaestro v1.11.0. If missing, the backend shows
+an actionable error and the application continues with debug preview.
+
+## Build and validation
+
+Install the .NET 10 SDK. From the repository root, run:
+
+```sh
+dotnet restore ControllerOS.sln
+dotnet build ControllerOS.sln --configuration Release --no-restore
+dotnet test ControllerOS.sln --configuration Release --no-build
+dotnet format ControllerOS.sln --verify-no-changes --no-restore
 ```
 
-Hardware definitions should be data-driven whenever possible so adding a conventional controller can be a small mapping contribution instead of an application-code change.
+The solution cross-builds its Windows-targeted projects from Linux; launching
+the WPF desktop requires Windows. The first build downloads the pinned
+HIDMaestro v1.11.0 archive from its [official release
+page](https://github.com/hifihedgehog/HIDMaestro/releases/tag/v1.11.0) when
+absent and verifies the archive and SDK DLL SHA-256 hashes. The app does not
+download dependencies at runtime. Installing the virtual output driver may
+require administrator rights.
 
-## Project principles
+Launch the desktop on Windows with:
 
-- Keep the runtime deterministic and testable.
-- Treat physical hardware as an adapter around a hardware-independent core.
-- Prefer data-driven device support over hard-coded device logic.
-- Make unsafe or pathological profiles fail locally without taking down the controller service.
-- Keep ControllerScript powerful inside the controller domain and intentionally weak outside it.
-- Preserve a recovery path if a profile blocks or suppresses normal controls.
-- Do not build game-specific detection evasion, anti-cheat bypasses, hardware-identity spoofing, or ban-evasion features.
-- Do not add features merely because they are possible; implement the smallest coherent platform first.
+```powershell
+dotnet run --project src/ControllerOS.Desktop/ControllerOS.Desktop.csproj -c Release
+```
+
+The manual Windows integration check is in
+`tests/ControllerOS.Windows.Integration/ControllerOS.Windows.Integration.csproj`.
+Run it in an elevated Windows terminal:
+
+```powershell
+dotnet run --project tests/ControllerOS.Windows.Integration/ControllerOS.Windows.Integration.csproj -c Release
+```
+
+CI runs the build, automated tests, and format verification. The Windows
+integration check installs/starts a virtual device and is kept manual.
+
+## Scope and safety
+
+Alpha 0.1 is Windows-first. It does not support consoles, every proprietary
+controller feature, native profile plugins, or physical raw-HID teaching. It
+does not include anti-cheat circumvention, detection evasion, hardware-identity
+spoofing, process injection, game memory manipulation, or packet manipulation.
 
 ## Repository status
 
-**Pre-alpha / architecture bootstrap.**
-
-See:
-
-- [ARCHITECTURE.md](ARCHITECTURE.md)
-- [CONTROLLERSCRIPT.md](CONTROLLERSCRIPT.md)
-- [ROADMAP.md](ROADMAP.md)
-- [ACCEPTANCE.md](ACCEPTANCE.md)
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [AGENTS.md](AGENTS.md)
-- [PROJECT_STATUS.md](PROJECT_STATUS.md)
-- [CODEX_START.md](CODEX_START.md)
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [FINAL_REPORT.md](FINAL_REPORT.md)
+for milestone evidence, current limitations, and community contribution
+opportunities. The contract and development files are
+[ARCHITECTURE.md](ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md),
+[ACCEPTANCE.md](ACCEPTANCE.md), [HARDWARE_REPORT.md](HARDWARE_REPORT.md),
+[CONTRIBUTING.md](CONTRIBUTING.md),
+[AGENTS.md](AGENTS.md), and [CODEX_START.md](CODEX_START.md).
 
 ## License
 
 ControllerOS is licensed under the [Apache License 2.0](LICENSE).
-
-## Contribution philosophy
-
-A contributor should be able to help even if they are not a systems programmer.
-
-Useful contributions can include:
-
-- testing a controller model
-- producing a sanitized hardware report
-- correcting a device mapping
-- adding conformance fixtures
-- improving documentation
-- implementing a well-scoped runtime milestone
-- reviewing ControllerScript behavior
-
-The project should be able to outgrow its original author without losing its architectural constraints.

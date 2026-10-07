@@ -30,13 +30,11 @@ Do not make the public profile format, ControllerScript syntax, bytecode, hardwa
 
 ### 1. Device discovery
 
-Responsibilities:
-
-- enumerate controller-like/HID devices available to the Windows guest
-- identify devices using stable descriptors where available
-- expose vendor/product/revision/interface metadata
-- determine whether a stored device definition exists
-- route unknown devices into discovery/calibration
+The Windows adapter enumerates HID interfaces with SetupAPI/HidP and exposes
+local device paths, manufacturer/product strings, vendor/product/revision and
+interface data, and HID usage/report capabilities. The desktop checks exact
+vendor/product/usage matches against local definitions and shows known/unknown
+status. Device paths remain local and are not written to reports.
 
 No game-specific process inspection belongs here.
 
@@ -44,13 +42,19 @@ No game-specific process inspection belongs here.
 
 Every input backend converts raw device behavior into the same normalized model.
 
-Required Alpha adapters:
+Alpha adapters:
 
 - SyntheticInput
 - KeyboardTestInput
-- WindowsControllerInput
+- WindowsControllerInput, using native XInput polling for slots 0–3
 
-Physical adapters must not contain ControllerScript behavior.
+WindowsControllerInput normalizes XInput buttons, triggers, and stick axes and
+emits releases when a slot disconnects. XInput does not expose GUIDE through
+its documented polling API, so the adapter does not advertise that control.
+The desktop can select keyboard test input or an XInput slot. HID enumeration
+does not yet provide generic raw HID input or samples for teaching; the teaching
+screen uses the synthetic unknown-device fixture. Physical controller support
+and physical teaching remain unverified.
 
 ### 3. Normalized ControllerState
 
@@ -79,13 +83,18 @@ Device-specific controls may exist as capabilities, but Alpha must not force eve
 
 Conventional hardware support should be data-driven.
 
-A device definition contains enough information to translate observable raw controls into normalized controls. It must be serializable, versioned, schema-validated, and testable without having the hardware connected.
+A device definition contains raw-control identifiers, raw ranges, match
+identifiers, and a mapping to normalized controls. It is serializable and
+versioned, and the loader rejects malformed, unknown, oversized, or ambiguous
+JSON. No physical device mappings ship with Alpha 0.1; the desktop can save and
+recognize the mapping produced by its synthetic teaching fixture.
 
 Personal calibration values are separate from globally reusable hardware definitions.
 
 ### 5. Calibration / teaching
 
-Unknown devices should be teachable through guided observation:
+The core teaching session accepts timestamped raw samples and supports guided
+observation:
 
 - identify requested buttons from changed raw inputs
 - identify stick axes from guided movement
@@ -95,13 +104,19 @@ Unknown devices should be teachable through guided observation:
 - produce a local mapping
 - produce a sanitized report suitable for contribution
 
-The wizard must distinguish:
+The desktop currently supplies those samples from a synthetic fixture. It does
+not read raw HID reports from a selected physical device. The saved data
+distinguishes:
 - global device mapping facts
 - per-unit calibration facts
 
 ### 6. ControllerScript frontend
 
-ControllerScript is a Python-like domain-specific language.
+ControllerScript is a restricted Python-like domain-specific language. Its
+implemented v0.1 syntax is documented in CONTROLLERSCRIPT.md: scalar state,
+`if`/`else`, non-recursive functions, `press`/`release`/`tap`, `wait`, normalized
+input reads, and normalized output writes. It has no imports, loops, collections,
+layers, or host-computer capabilities.
 
 Pipeline:
 
@@ -134,7 +149,9 @@ The VM owns:
 - output mutation
 - error isolation
 
-`wait()` is a yielding scheduler primitive. It must never block the controller I/O loop.
+`wait()` is a yielding scheduler primitive. It does not block input processing.
+The desktop advances runtime time on a dispatcher timer; the deterministic
+scenario runner advances through timestamped input and drains pending timers.
 
 Untrusted profiles must not have direct:
 - filesystem access
@@ -148,7 +165,8 @@ Untrusted profiles must not have direct:
 
 Scripts write to a pending normalized OutputState.
 
-Output changes are committed coherently on an output tick so a consumer does not observe arbitrary intermediate states.
+Output changes are committed coherently after each logical input timestamp or
+timer deadline so a consumer does not observe intermediate handler writes.
 
 Conflict behavior must be deterministic and documented.
 
@@ -160,37 +178,41 @@ Required Alpha adapters:
 - DebugOutput
 - VirtualXboxOutput
 
-The core runtime must remain usable even when a virtual-controller backend is unavailable.
+VirtualXboxOutput wraps HIDMaestro v1.11.0. The Windows project downloads its
+official release archive during build when absent and verifies pinned SHA-256
+hashes for the archive and SDK DLL. It does not download at runtime. The core
+runtime remains usable with debug preview when the backend is unavailable.
 
 ### 10. Simulation and conformance
 
 Physical hardware must not be required to validate most of ControllerOS.
 
-Synthetic fixtures should model:
+Synthetic fixtures currently model:
 
 - normal gamepad
 - noisy stick
 - off-center stick
 - missing triggers
-- disconnect/reconnect
-- unknown device
+- an unknown raw device
 - malformed device definition
 
 Tests should be able to provide timestamped input events and assert timestamped normalized outputs.
 
 ### 11. Hardware report
 
-A contribution report may contain:
+A contribution report v2 contains only:
 
 - ControllerOS version
 - device identifiers needed for matching
 - HID/controller capability summary
 - mapping observations
-- anonymous calibration samples useful for diagnosis
+- calibration evidence keyed by generated anonymous control IDs
 - generated mapping candidate
 - validation results
 
-It must not intentionally contain:
+The exporter replaces raw control labels with stable ordinal IDs such as
+`button-0` and `axis-0`; this prevents identifier-like input labels from
+leaking into a report. It does not intentionally contain:
 
 - username
 - computer name
@@ -199,6 +221,9 @@ It must not intentionally contain:
 - IP addresses
 - account identifiers
 - unrelated system telemetry
+
+The exact v2 JSON shape, field types, enum strings, and pre-serialization
+validation rules are documented in [HARDWARE_REPORT.md](HARDWARE_REPORT.md).
 
 ### 12. AI integration boundary
 

@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore ControllerOS.sln
+      - name: Build
+        run: dotnet build ControllerOS.sln --configuration Release --no-restore
+      - name: Test
+        run: dotnet test ControllerOS.sln --configuration Release --no-build
+      - name: Check formatting and analyzers
+        run: dotnet format ControllerOS.sln --verify-no-changes --no-restore
