@@ -1,94 +1,89 @@
-# ControllerOS
+<h1 align="center">🎮 ControllerOS</h1>
 
-**A headless-first programmable controller platform with a hardware-independent core.**
+<p align="center">
+  <strong>Program your controller. Teach it new hardware. Share what you discover.</strong>
+</p>
 
-ControllerOS is designed so the core can be built, tested, configured, and
-maintained remotely without requiring the maintainer to sit at a Windows
-desktop or physically own every controller. CLI/API automation, synthetic
-fixtures, and community-supplied hardware evidence are first-class parts of
-the long-term architecture; the WPF application is an optional frontend.
+<p align="center">
+  An open-source, headless-first controller programming platform built for custom controls, accessibility, and community-driven hardware support.
+</p>
 
-ControllerOS Alpha 0.1 is the first architectural proof: a Windows-capable
-runtime for mapping normalized controller input through a restricted script
-runtime and sending output to a debug sink or an Xbox-style virtual controller.
+<p align="center">
+  <a href="https://github.com/TenchiNeko/ControllerOS/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/TenchiNeko/ControllerOS/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
+  <img alt="Platform: Windows x64" src="https://img.shields.io/badge/platform-Windows%20x64-0078D4">
+  <img alt="Status: experimental" src="https://img.shields.io/badge/status-experimental-orange">
+</p>
 
-See [VISION.md](VISION.md) for the headless-first, community-hardware direction.
+<p align="center">
+  <a href="https://github.com/TenchiNeko/ControllerOS/releases"><strong>Releases</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/TenchiNeko/ControllerOS/actions/workflows/ci.yml"><strong>Experimental builds</strong></a>
+  &nbsp;·&nbsp;
+  <a href="HARDWARE_CONTRIBUTION.md"><strong>Contribute a controller</strong></a>
+  &nbsp;·&nbsp;
+  <a href="VISION.md"><strong>Project vision</strong></a>
+</p>
 
-Alpha 0.1 remains the first architectural proof. The current Headless Community
-Bridge adds:
+---
 
-- a headless Windows CLI over the existing core/runtime
-- selected-device raw Windows HID capture for supported button and scalar-value controls
-- guided physical teaching through the existing calibration engine
-- privacy-bounded version 3 reports and separate per-unit calibration
-- replay fixtures, privacy tests, self-test, and CI-built Windows artifacts
+## What is ControllerOS?
 
-The original Alpha 0.1 milestones and report remain historical evidence; they
-are not rewritten by this phase.
+**ControllerOS makes controller behavior programmable instead of fixed.** It translates supported input sources into common button, stick, and trigger controls, runs a restricted Python-like **ControllerScript**, then sends the result to debug output or an Xbox-style virtual controller.
 
-## Controller path
+A second path lets a hardware owner **teach the system about an unfamiliar controller** and contribute a sanitized mapping report—without the project maintainer owning that hardware.
 
-```text
-physical controller → selected raw HID capture → headless CLI
-                                      ↓
-                         existing teaching/calibration engine
-                                      ↓
-                         validated local device mapping
-                                      ↓
-                         privacy-bounded community report
+| Program the controls | Teach new hardware | Run it headlessly |
+|:--|:--|:--|
+| Event handlers, state, conditions, math, timed button actions, and analog transforms through ControllerScript. | Inspect supported raw HID controls, guide a teaching session, and save device mappings separately from per-unit calibration. | Use the Windows CLI over PowerShell or SSH, run deterministic synthetic tests, and validate with CI. |
 
-keyboard / XInput / synthetic input → normalized controller state
-                                      ↓
-                         ControllerScript runtime and timers
-                                      ↓
-                         debug preview / virtual controller
+> [!NOTE]
+> **Experimental community preview.** The controller runtime, automated tests, and Windows virtual-device loopback have been verified. **No physical controller model has yet been maintainer-tested.** Real-world HID compatibility and the optional desktop GUI still need outside testing.
+
+## How it works
+
+```mermaid
+flowchart TD
+    A["Physical HID · XInput · keyboard · synthetic"] --> B["Normalized controller state"]
+    B --> C["ControllerScript VM"]
+    C --> D["Debug / virtual Xbox output"]
+
+    A --> E["Discover and teach hardware"]
+    E --> F["Device mapping + per-unit calibration"]
+    F --> B
+    E --> G["Sanitized hardware report"]
+    G --> H["Community mapping contributions"]
 ```
 
-The intended frontend model is:
+The core is independent of the Windows desktop. The CLI exists today; an optional WPF frontend also exists, and future AI or visual editors are intended to use the **same validated runtime**, not separate automation engines.
 
-```text
-CLI  ───────┐
-Desktop UI ─┼→ same ControllerOS core/runtime
-AI/API ─────┘
-```
+## Get started on Windows
 
-The WPF desktop remains an optional frontend. The CLI supports remote and SSH
-use without an interactive desktop. Generic HID exposes raw buttons, scalar
-values, and supported D-pad hats; proprietary or array-based controls are
-reported as unavailable unless ControllerOS has evidence it understands.
+**Windows x64 · experimental · no .NET SDK required for the self-contained CLI build**
 
-## Headless CLI
-
-The Windows CLI is named `controlleros.exe`. Run `controlleros --help` for the
-full syntax. Typical commands are:
+1. Check [Releases](https://github.com/TenchiNeko/ControllerOS/releases) for a published prerelease. If none is available, open the [latest successful `main` CI run](https://github.com/TenchiNeko/ControllerOS/actions/workflows/ci.yml?query=branch%3Amain) and download its `controlleros-experimental-win-x64-...` artifact. GitHub may require sign-in for Actions artifacts, which currently expire after 30 days.
+2. Extract the ZIP, review `BUILD-INFO.txt`, and open PowerShell in the extracted folder.
+3. Run the self-test and list available generic HID controllers:
 
 ```powershell
 .\controlleros.exe self-test --json
 .\controlleros.exe devices
-.\controlleros.exe inspect controller-001
-.\controlleros.exe teach controller-001
-.\controlleros.exe validate .\profile.json
-.\controlleros.exe simulate .\profile.json --json
-.\controlleros.exe export-report
 ```
 
-`devices` lists only generic HID gamepad/joystick collections. Device IDs are
-temporary indexes from the current enumeration. `teach` prompts for each
-standard control, supports `skip`, previews the mapping before saving, and
-stores each unit's calibration separately. `runtime start` requires a profile,
-device ID, definition ID, and calibration ID; `runtime stop` sends a same-user
-local stop request. Non-interactive commands support `--json`. Exit codes are
-stable: 0 success, 1 operational failure, 2 usage error, 3 invalid input,
-4 unsupported platform, and 130 cancellation.
+If a device is listed, use the **temporary device ID shown by your own output** (for example, `controller-001`):
 
-See [HARDWARE_CONTRIBUTION.md](HARDWARE_CONTRIBUTION.md) for the non-programmer
-artifact and report workflow.
+```powershell
+.\controlleros.exe inspect controller-001
+.\controlleros.exe teach controller-001
+```
 
-## ControllerScript
+The teaching flow walks through observable controls, supports skipping unsupported ones, previews the generated mapping, and asks before saving it.
 
-ControllerScript v0.1 supports `press`, `release`, and `change` handlers;
-state, conditions, non-recursive functions, button output calls, normalized
-output writes, and non-blocking waits.
+**Full walkthrough:** [Download, teach, validate, and submit a controller report →](HARDWARE_CONTRIBUTION.md)
+
+## ControllerScript in 10 seconds
+
+ControllerScript is a **sandboxed, Python-like domain language**, not unrestricted Python. This v0.1 example presses a virtual button, yields for 100 milliseconds, and then releases it:
 
 ```python
 on press(SOUTH):
@@ -100,42 +95,44 @@ on change(RIGHT_X):
     output.RIGHT_X = RIGHT_X * 1.35
 ```
 
-It has no loops, layers, imports, collections, or host-computer APIs. See
-[CONTROLLERSCRIPT.md](CONTROLLERSCRIPT.md) for the supported syntax and limits.
+It currently supports press/release/change handlers, state, conditions, non-recursive functions, normalized input reads/output writes, and non-blocking waits. **Loops, layers, imports, and general host-computer APIs are not implemented in v0.1.**
 
-## Devices and community reports
+[ControllerScript language reference →](CONTROLLERSCRIPT.md)
 
-The device-definition format separates reusable raw-to-standard mappings from
-per-unit calibration. The headless CLI captures one selected Windows HID
-interface and feeds observations into the existing teaching session. Reports
-contain only allowlisted device, capability, mapping, calibration, version,
-commit, evidence, and validation fields. Raw control labels are replaced with
-anonymous ordinal IDs in exported reports. Review a report before sharing it.
-The exact serialized v3 property names, types, enum values, and validation
-rules are in [HARDWARE_REPORT.md](HARDWARE_REPORT.md).
+## What works today?
 
-No physical controller model is claimed as maintainer-tested. Replay fixtures
-validate the software pipeline, but physical-device mapping remains
-community-test-needed. Hardware evidence levels are in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+| Capability | Evidence |
+|:--|:--|
+| Normalized controls, ControllerScript VM, deterministic scheduler, profile validation | Automated tests |
+| Windows headless CLI, simulation and self-test | CI and Windows VM |
+| Virtual Xbox-style output | Windows VM HID/XInput loopback |
+| Generic HID capture and guided teaching | Implemented; synthetic/replay validation only for physical-device behavior |
+| Sanitized hardware reports and versioned mappings | Automated validation and privacy tests |
+| WPF desktop frontend | Compiles; interactive visual check still needed |
+| Physical device compatibility | **Community testing needed** |
+| Conversational AI setup, visual programming, consoles | **Long-term vision; not shipped** |
 
-## Windows desktop
+See [Headless Bridge report](HEADLESS_BRIDGE_FINAL_REPORT.md) for evidence, limitations, and test results. This table deliberately separates **software verification** from **hardware verification**.
 
-The desktop includes profile JSON load/save, source editing, compile/runtime
-diagnostics, keyboard or XInput input, live normalized input/output views,
-teaching, report export, start/stop, and an emergency disable control. The
-keyboard map is shown in the Devices tab: WASD controls the left stick, arrow
-keys control the right stick, Space/E/Q/R are SOUTH/EAST/WEST/NORTH, U/I are
-bumpers, Shift keys are triggers, Enter/Tab/F1 are MENU/VIEW/GUIDE, Ctrl keys
-click the sticks, and NumPad 8/2/4/6 drive the D-pad. Escape disables a running
-profile and releases outputs.
+## 🕹️ Have a controller? Help teach ControllerOS.
 
-The virtual Xbox adapter uses HIDMaestro v1.11.0. If missing, the backend shows
-an actionable error and the application continues with debug preview.
+You don't need to know C# or submit code. A useful first contribution can be a controller compatibility report.
 
-## Build and validation
+1. Follow the [hardware contributor guide](HARDWARE_CONTRIBUTION.md).
+2. Run device discovery and teaching on your own Windows machine.
+3. **Review your sanitized report** before posting.
+4. Open a [hardware-support issue](https://github.com/TenchiNeko/ControllerOS/issues/new/choose) describing what worked, what didn't, and the connection mode.
 
-Install the .NET 10 SDK. From the repository root, run:
+Every real device report helps distinguish an implementation that passed synthetic tests from one that works with hardware in the field. Claims are tracked as *maintainer-tested*, *contributor-tested*, *mapping-only*, or *unverified*.
+
+[Contributing guide](CONTRIBUTING.md) · [Issues](https://github.com/TenchiNeko/ControllerOS/issues) · [Hardware report schema](HARDWARE_REPORT.md)
+
+## For developers
+
+<details>
+<summary><strong>Build and test from source</strong></summary>
+
+Requires the **.NET 10 SDK**. The solution can build its Windows-targeted projects from Linux; launching the WPF UI requires Windows.
 
 ```sh
 dotnet restore ControllerOS.sln
@@ -144,56 +141,54 @@ dotnet test ControllerOS.sln --configuration Release --no-build
 dotnet format ControllerOS.sln --verify-no-changes --no-restore
 ```
 
-The solution cross-builds its Windows-targeted projects from Linux; launching
-the WPF desktop requires Windows. The first build downloads the pinned
-HIDMaestro v1.11.0 archive from its [official release
-page](https://github.com/hifihedgehog/HIDMaestro/releases/tag/v1.11.0) when
-absent and verifies the archive and SDK DLL SHA-256 hashes. The app does not
-download dependencies at runtime. Installing the virtual output driver may
-require administrator rights.
-
-Launch the desktop on Windows with:
+Windows desktop:
 
 ```powershell
 dotnet run --project src/ControllerOS.Desktop/ControllerOS.Desktop.csproj -c Release
 ```
 
-The manual Windows integration check is in
-`tests/ControllerOS.Windows.Integration/ControllerOS.Windows.Integration.csproj`.
-Run it in an elevated Windows terminal:
+Windows virtual-device integration check (may require an elevated terminal):
 
 ```powershell
 dotnet run --project tests/ControllerOS.Windows.Integration/ControllerOS.Windows.Integration.csproj -c Release
 ```
 
-CI runs the automated suite and headless self-test on Windows, then runs the
-Release build, tests, format verification, and a self-contained `win-x64` CLI
-publish. The published experimental artifact
-includes build commit/version, dependency notices, and a SHA-256 manifest. It is
-downloaded from the successful workflow run's Artifacts section, not a Release.
-The Windows integration check starts a virtual controller and exercises XInput
-and selected-device raw HID capture; it remains a manual VM check.
+The virtual Xbox backend uses a pinned, hash-checked [HIDMaestro v1.11.0](https://github.com/hifihedgehog/HIDMaestro/releases/tag/v1.11.0) dependency. The build can acquire it from its official release if absent. No dependencies are fetched by the application at runtime; driver installation may require administrator rights.
 
-## Scope and safety
+</details>
 
-The current phase is Windows-first. It does not support consoles, every
-proprietary controller feature, or native profile plugins. Physical behavior
-still needs contributor validation. It
-does not include anti-cheat circumvention, detection evasion, hardware-identity
-spoofing, process injection, game memory manipulation, or packet manipulation.
+<details>
+<summary><strong>Optional WPF desktop controls</strong></summary>
 
-## Repository status
+The desktop includes a source editor, diagnostics, normalized input/output views, synthetic teaching, report export, and start/stop/emergency-disable controls. Its interactive visual workflow has not yet been validated.
 
-See [PROJECT_STATUS.md](PROJECT_STATUS.md), [FINAL_REPORT.md](FINAL_REPORT.md),
-and [HEADLESS_BRIDGE_FINAL_REPORT.md](HEADLESS_BRIDGE_FINAL_REPORT.md) for
-phase evidence and current validation gaps. The contract and development files are
-[ARCHITECTURE.md](ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md),
-[ACCEPTANCE.md](ACCEPTANCE.md), [HARDWARE_REPORT.md](HARDWARE_REPORT.md),
-[HARDWARE_CONTRIBUTION.md](HARDWARE_CONTRIBUTION.md),
-[HEADLESS_BRIDGE_ACCEPTANCE.md](HEADLESS_BRIDGE_ACCEPTANCE.md),
-[GOVERNANCE.md](GOVERNANCE.md), [CONTRIBUTING.md](CONTRIBUTING.md),
-[AGENTS.md](AGENTS.md), and [CODEX_START.md](CODEX_START.md).
+Keyboard testing: **WASD** left stick · **arrow keys** right stick · **Space/E/Q/R** SOUTH/EAST/WEST/NORTH · **U/I** bumpers · **Shift** triggers · **Enter/Tab/F1** MENU/VIEW/GUIDE · **Ctrl** stick clicks · **NumPad 8/2/4/6** D-pad. **Escape** disables the active profile and releases output.
 
-## License
+</details>
 
-ControllerOS is licensed under the [Apache License 2.0](LICENSE).
+<details>
+<summary><strong>Architecture, project records, and governance</strong></summary>
+
+- [Vision and direction](VISION.md)
+- [Architecture](ARCHITECTURE.md)
+- [ControllerScript specification](CONTROLLERSCRIPT.md)
+- [Original Alpha 0.1 roadmap](ROADMAP.md) and [final report](FINAL_REPORT.md)
+- [Headless Bridge acceptance](HEADLESS_BRIDGE_ACCEPTANCE.md) and [final report](HEADLESS_BRIDGE_FINAL_REPORT.md)
+- [Current project status](PROJECT_STATUS.md)
+- [Contribution standards](CONTRIBUTING.md) and [repository governance](GOVERNANCE.md)
+- [Development agent guidance](AGENTS.md)
+
+</details>
+
+## Scope and principles
+
+ControllerOS is **Windows-first** and built for general controller customization, accessibility, programming, and device interoperability. Support for proprietary paddles, advanced haptics, gyro, console authentication, and other vendor-specific functionality cannot be assumed.
+
+The project does not provide game-specific anti-cheat bypasses, detection evasion, hardware-identity spoofing for enforcement bypass, process injection, game-memory manipulation, or packet manipulation.
+
+---
+
+<p align="center">
+  <strong>Made to be extended by the people who actually own the hardware.</strong><br>
+  <a href="LICENSE">Apache-2.0</a> · <a href="HARDWARE_CONTRIBUTION.md">Contribute a controller</a> · <a href="VISION.md">Where this project is going</a>
+</p>
