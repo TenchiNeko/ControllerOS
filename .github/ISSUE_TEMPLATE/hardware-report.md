@@ -20,13 +20,12 @@ Evidence level (maintainer-tested, contributor-tested, mapping-only, or unverifi
 
 ## Device data and evidence
 
-The Alpha 0.1 desktop can export a report only from its synthetic teaching
-fixture. Do not attach that fixture report as evidence for a physical model.
-For a physical-device report, include only the stable VID/PID and HID usage
-values, raw control identifiers and ranges, mapping observations, calibration
-samples needed to reproduce the mapping, validation results, and ControllerOS
-version. Use anonymous raw control IDs such as `button-0` and `axis-0`.
-Review all attachments before sharing.
+Use the experimental headless CLI to produce a validated hardware report. A
+`mapping-only` or `unverified` report must not be described as a physical test.
+Include the report's ControllerOS version/commit and evidence level. The report
+already contains only stable VID/PID/revision/usage values, anonymous raw
+control identifiers/ranges, mappings, calibration, skipped controls, and
+validation results. Review it before sharing.
 
 Do not paste device paths, serial numbers, usernames, computer names, IP
 addresses, account identifiers, a full USB inventory, or unrelated logs.

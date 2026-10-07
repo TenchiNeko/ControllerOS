@@ -83,6 +83,8 @@ public sealed class DeviceTeachingTests
         Assert.AreEqual(0.0, DeviceDefinitionNormalizer.Normalize(candidate, calibration, "axis-2", 0).Value);
         Assert.AreEqual(1.0, DeviceDefinitionNormalizer.Normalize(candidate, calibration, "axis-2", 255).Value);
         Assert.IsTrue(DeviceDefinitionNormalizer.Normalize(candidate, calibration, "button-0", 1).IsPressed);
+        Assert.ThrowsExactly<DeviceDefinitionFormatException>(() => DeviceDefinitionNormalizer.Normalize(
+            candidate, calibration with { DefinitionId = "different-device" }, "button-0", 1));
     }
 
     [TestMethod]
@@ -119,6 +121,13 @@ public sealed class DeviceTeachingTests
             Assert.AreEqual(session.Preview().Id, loaded.Id);
             Assert.IsNotNull(recognized);
             Assert.AreEqual(4, calibration.Controls.Count);
+            Assert.AreEqual(loaded.Id, calibration.DefinitionId);
+            Assert.IsTrue(calibration.IsCompatibleWith(loaded));
+            Assert.IsFalse(calibration.IsCompatibleWith(loaded with { Id = "different-device" }));
+            DeviceCalibration unitCalibration = calibration with { UnitFingerprint = new string('a', 64) };
+            Assert.IsTrue(unitCalibration.IsValid);
+            Assert.IsTrue(unitCalibration.MatchesUnit(new string('A', 64)));
+            Assert.IsFalse(unitCalibration.MatchesUnit(new string('b', 64)));
             Assert.AreEqual(1, diagnostics.Count);
             StringAssert.Contains(diagnostics[0], "byte limit");
             Assert.IsTrue(File.Exists(saved.DefinitionPath));
@@ -150,11 +159,16 @@ public sealed class DeviceTeachingTests
 
         Assert.AreEqual("0.1.0-alpha.1", report.ControllerOSVersion);
         Assert.AreEqual(4, report.MappingEvidence.Count);
+        Assert.AreEqual(ControlCatalog.All.Count - 4, report.SkippedControls.Count);
         Assert.AreEqual(HardwareReport.CurrentSchemaVersion, report.SchemaVersion);
+        Assert.AreEqual("unknown", report.ControllerOSCommit);
+        Assert.AreEqual("mapping-only", report.EvidenceLevel);
         Assert.IsTrue(report.Validation.IsValid);
         Assert.IsTrue(json.Contains("mappingCandidate", StringComparison.Ordinal));
         Assert.IsTrue(json.Contains("vendorId", StringComparison.Ordinal));
         Assert.IsTrue(json.Contains("\"target\": \"lefT_STICK_X\"", StringComparison.Ordinal), json);
+        string reportWithModel = HardwareReportJson.Serialize(report with { Device = report.Device with { RetailModelName = "Example Controller 2" } });
+        Assert.IsTrue(reportWithModel.Contains("Example Controller 2", StringComparison.Ordinal));
 
         HardwareReport ReplaceButtonId(string replacement) => report with
         {
@@ -185,8 +199,9 @@ public sealed class DeviceTeachingTests
 
         foreach (string forbidden in new[]
         {
-            "userName", "computerName", "serialNumber", "unrelatedDevices", "ipAddress", "filePath",
-            "C:\\Users\\alice", "alice", "workstation-17", "192.0.2.4"
+            "username", "hostname", "devicePath", "serialNumber", "unrelatedHardwareInventory", "ipAddress",
+            "filesystemPath", "credentials", "token", "ghp_example_secret", "github_pat_example_secret",
+            "C:\\Users\\alice", "\\\\?\\HID#VID_", "alice", "workstation-17", "192.0.2.4"
         })
             Assert.IsFalse(json.Contains(forbidden, StringComparison.OrdinalIgnoreCase), $"Report contained '{forbidden}'.");
 
@@ -213,6 +228,16 @@ public sealed class DeviceTeachingTests
         Assert.ThrowsExactly<ArgumentException>(() => new RawDeviceDescriptor(
             SyntheticUnknownDeviceFixture.Device.Match,
             [new("C:\\Users\\alice\\hid", RawControlKind.Axis, -1, 1)]));
+        Assert.ThrowsExactly<ArgumentException>(() => new RawDeviceDescriptor(
+            SyntheticUnknownDeviceFixture.Device.Match,
+            [new("axis-0", RawControlKind.Axis, -1, 1)],
+            retailModelName: "C:\\Users\\alice"));
+        Assert.ThrowsExactly<ArgumentException>(() => new RawDeviceDescriptor(
+            SyntheticUnknownDeviceFixture.Device.Match,
+            [new("axis-0", RawControlKind.Axis, -1, 1)],
+            retailModelName: "192.0.2.4"));
+        Assert.ThrowsExactly<System.Text.Json.JsonException>(() => HardwareReportJson.Deserialize(
+            json.Replace("\"evidenceLevel\": \"mapping-only\"", "\"evidenceLevel\": \"mapping-only\", \"username\": \"alice\"", StringComparison.Ordinal)));
     }
 
     [TestMethod]

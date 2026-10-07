@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ControllerOS.Core\ControllerOS.Core.csproj" />
+    <InternalsVisibleTo Include="ControllerOS.Tests" />
     <Reference Include="HIDMaestro.Core">
       <HintPath>$(HIDMaestroAssembly)</HintPath>
       <Private>true</Private>

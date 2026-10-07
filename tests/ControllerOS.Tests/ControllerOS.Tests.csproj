@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
@@ -11,5 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ControllerOS.Core\ControllerOS.Core.csproj" />
+    <ProjectReference Include="..\..\src\ControllerOS.Cli\ControllerOS.Cli.csproj" />
   </ItemGroup>
 </Project>

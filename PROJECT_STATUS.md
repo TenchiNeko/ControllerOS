@@ -2,14 +2,14 @@
 
 Last updated: 2026-10-07
 
-## Release target
+## Release history
 
 **Alpha 0.1 — implementation complete; public release not published.**
 
-The authoritative scope and release gates are README.md, ARCHITECTURE.md,
-CONTROLLERSCRIPT.md, ROADMAP.md, ACCEPTANCE.md, and AGENTS.md.
+The Alpha 0.1 acceptance and final report are historical records. This status
+file tracks the current Headless Community Bridge phase separately.
 
-## Milestones
+## Alpha 0.1 milestones (historical snapshot)
 
 | Milestone | State | Evidence / limitation |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ CONTROLLERSCRIPT.md, ROADMAP.md, ACCEPTANCE.md, and AGENTS.md.
 | M14 End-to-end Alpha validation | COMPLETE | Core suite covers synthetic delayed output, unrelated input during waits, failed compilation while a runtime is active, quotas, teaching/save/recognition, report privacy and keyboard runtime; Windows VM adapter smoke passes |
 | M15 Community launch readiness | COMPLETE | README, Architecture, language/contribution docs, issue template, release notes, CI, documented commands and evidence levels updated |
 
-## Validation commands
+## Alpha 0.1 validation record
 
 Run from the repository root with the .NET 10 SDK:
 
@@ -41,56 +41,73 @@ dotnet test ControllerOS.sln --configuration Release --no-build
 dotnet format ControllerOS.sln --verify-no-changes --no-restore
 ```
 
-Release build and format verification pass with zero warnings/errors; the
-automated suite passes 36/36 tests. The manual Windows adapter check and its
-results are recorded in FINAL_REPORT.md.
+Alpha 0.1 passed 36/36 tests. Its original Release build, format verification,
+Windows adapter check, and limitations are recorded in FINAL_REPORT.md.
 
-## Physical and interactive validation gaps
+## Headless Community Bridge
 
-- No physical gamepad has been tested. The Windows VM check exercised XInput
-  using ControllerOS's synthetic virtual output, without GPU passthrough.
-- Windows HID enumeration is read-only. The desktop teaching flow currently
-  consumes the built-in synthetic fixture; it cannot collect raw HID samples
-  from a discovered physical device.
-- XInput polling does not expose GUIDE, so the XInput source omits that
-  capability. Keyboard test input includes GUIDE.
-- The Windows VM had no interactive user session (`quser` reported none), so the
-  WPF window was cross-built but not launched for a visual GUI check. The
-  compile-before-stop path is covered by code review and the Core failure
-  isolation test, not an interactive bad-edit UI test.
-- No physical controller model is claimed as supported. Contributors can
-  provide physical mapping evidence using the levels and privacy guidance in
-  CONTRIBUTING.md.
+The Headless Community Bridge adds a Windows CLI over existing services,
+selected-device raw HID capture, physical teaching through the existing
+calibration engine, privacy-bounded report v3, local per-unit calibration, and
+CI packaging for an experimental self-contained Windows CLI.
+
+Validation commands from a clean checkout:
+
+```sh
+dotnet restore ControllerOS.sln
+dotnet build ControllerOS.sln --configuration Release --no-restore
+dotnet test ControllerOS.sln --configuration Release --no-build
+dotnet format ControllerOS.sln --verify-no-changes --no-restore
+```
+
+The current workspace Release build passes with zero warnings/errors; the suite
+passes 47/47 tests; format verification passes; and `controlleros self-test
+--json` passes 5/5 applicable checks on Linux. A self-contained `win-x64` CLI
+published from commit `deb47eda637bb67bb34b9a9d8719acf171125bc3` passed its
+200-file artifact hash check and all 5 self-test checks on VM 101. A detached
+clean checkout at that commit also passed the Release build, 47/47 tests, and
+format verification. The Windows integration probe opened the virtual Xbox
+HID interface, enumerated 14 controls, canceled an idle raw read, verified
+normalized XInput output, and confirmed clean disconnect and interface removal.
+No physical gamepad was attached; physical HID teaching remains
+community-test-needed.
+
+The phase acceptance ledger is HEADLESS_BRIDGE_ACCEPTANCE.md. Its final review
+evidence, CI artifact result, implementation summary, and limitations are in
+HEADLESS_BRIDGE_FINAL_REPORT.md.
+
+## Evidence limits
+
+- No physical controller was available. Physical button, stick, trigger, and
+  D-pad behavior remains community-test-needed; replay fixtures validate only
+  the raw-report-to-teaching software path.
+- VM 101 was reached using the documented Windows-worker connection. The VM
+  had no generic gamepad or joystick collection; its virtual Xbox device only
+  validated the Windows adapter and virtual output path.
+- The WPF interface was not interactively launched in this phase. Visual
+  behavior remains interactive-test-needed and is outside the headless bridge
+  acceptance gate.
+- No physical model is claimed as maintainer-tested. Contribution evidence
+  levels and report privacy expectations are in CONTRIBUTING.md and
+  HARDWARE_CONTRIBUTION.md.
 
 ## Completion state
 
-All Alpha 0.1 milestones are implemented and the required repository validation
-passes. Physical controller teaching and interactive WPF launch remain the
-documented limitations above. No public tag or release was created.
+Alpha 0.1 history remains unchanged. The Headless Community Bridge
+implementation is locally validated, including on VM 101, but is not
+phase-complete: GitHub rejected the branch push because the authenticated OAuth
+App token lacks the `workflow` scope required to update
+`.github/workflows/ci.yml`. PR CI and the CI artifact upload therefore remain
+unverified. The exact rejection and remaining completion steps are recorded in
+HEADLESS_BRIDGE_FINAL_REPORT.md. The local branch includes reviewed
+implementation commit `deb47eda637bb67bb34b9a9d8719acf171125bc3`; the remote
+feature branch is still at `3a41dfcffef7b2407340f4b2af15c75e7e5d33f0`, and the
+current token reports only `gist`, `read:org`, and `repo`.
 
-The final review evidence, commands, implementation summary, and next community
-contributions are in FINAL_REPORT.md. Stop after final commit; do not begin
-Alpha 0.2 work.
+After the owner refreshes the existing GitHub CLI authentication with the
+required scope, push the existing branch, complete the PR checks, merge under
+the configured ruleset, and verify remote `main`. No AI integration, console
+support, or unrelated phase work is included. No tag or GitHub Release has
+been created.
 
-
-## Forward direction
-
-Alpha 0.1 remains complete and is preserved as the initial architectural proof.
-
-The forward project vision is now documented in [VISION.md](VISION.md). The
-project is **headless-first**: future release-critical capabilities should be
-available through reusable core services and CLI/API surfaces rather than
-requiring the original maintainer to operate an interactive desktop.
-
-Highest-value next work, without changing Alpha 0.1 history:
-
-1. expose the existing core through a headless CLI;
-2. capture raw input from physical HID devices;
-3. connect that capture to the existing teaching/calibration engine;
-4. support headless sanitized hardware-report export;
-5. produce automated Windows artifacts for community testers;
-6. let physical hardware owners supply validation evidence and mappings.
-
-No physical controller or graphical desktop is required for the original
-maintainer to continue architecture, runtime, CI, and review work. Hardware
-support must remain explicitly evidence-based.
+The forward project direction remains documented in [VISION.md](VISION.md).

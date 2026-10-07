@@ -8,9 +8,30 @@ permissions:
   contents: read
 
 jobs:
+  windows-cli-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore ControllerOS.sln
+      - name: Build
+        run: dotnet build ControllerOS.sln --configuration Release --no-restore
+      - name: Test
+        run: dotnet test ControllerOS.sln --configuration Release --no-build
+      - name: Run headless self-test
+        run: dotnet run --project src/ControllerOS.Cli/ControllerOS.Cli.csproj --configuration Release --no-build -- self-test --json
+
   build-test-format:
+    needs: windows-cli-smoke
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
+      - name: Require the Windows smoke job to pass
+        if: ${{ needs.windows-cli-smoke.result != 'success' }}
+        run: exit 1
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
@@ -23,3 +44,28 @@ jobs:
         run: dotnet test ControllerOS.sln --configuration Release --no-build
       - name: Check formatting and analyzers
         run: dotnet format ControllerOS.sln --verify-no-changes --no-restore
+      - name: Publish experimental Windows CLI
+        env:
+          CONTROLLEROS_COMMIT: ${{ github.sha }}
+        run: |
+          dotnet publish src/ControllerOS.Cli/ControllerOS.Cli.csproj \
+            --configuration Release \
+            --runtime win-x64 \
+            --self-contained true \
+            -p:ControllerOSCommit="$CONTROLLEROS_COMMIT" \
+            --output artifacts/controlleros-win-x64
+          cat > artifacts/controlleros-win-x64/BUILD-INFO.txt <<EOF
+          ControllerOS version: 0.2.0-alpha.1
+          Commit: $CONTROLLEROS_COMMIT
+          Target: Windows x64, self-contained .NET 10
+          Purpose: experimental community hardware testing
+          EOF
+          cd artifacts/controlleros-win-x64
+          find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+      - name: Upload experimental Windows CLI
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlleros-experimental-win-x64-${{ github.sha }}
+          path: artifacts/controlleros-win-x64/
+          if-no-files-found: error
+          retention-days: 30

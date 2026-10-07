@@ -69,10 +69,11 @@ Alpha adapters:
 WindowsControllerInput normalizes XInput buttons, triggers, and stick axes and
 emits releases when a slot disconnects. XInput does not expose GUIDE through
 its documented polling API, so the adapter does not advertise that control.
-The desktop can select keyboard test input or an XInput slot. HID enumeration
-does not yet provide generic raw HID input or samples for teaching; the teaching
-screen uses the synthetic unknown-device fixture. Physical controller support
-and physical teaching remain unverified.
+The headless CLI can select one enumerated generic HID gamepad/joystick
+collection and read asynchronous input reports through the Windows HID parser.
+Raw device paths stay inside the Windows adapter. The desktop's teaching screen
+still uses the synthetic fixture. Physical controller mapping remains
+community-test-needed.
 
 ### 3. Normalized ControllerState
 
@@ -95,7 +96,8 @@ Trigger values are normalized to `0.0..1.0`.
 
 Stick axes are normalized to `-1.0..1.0`.
 
-Device-specific controls may exist as capabilities, but Alpha must not force every unusual control into the standard set.
+Device-specific controls may exist as capabilities, but ControllerOS must not
+force every unusual control into the standard set.
 
 ### 4. Device definitions
 
@@ -104,10 +106,13 @@ Conventional hardware support should be data-driven.
 A device definition contains raw-control identifiers, raw ranges, match
 identifiers, and a mapping to normalized controls. It is serializable and
 versioned, and the loader rejects malformed, unknown, oversized, or ambiguous
-JSON. No physical device mappings ship with Alpha 0.1; the desktop can save and
-recognize the mapping produced by its synthetic teaching fixture.
+JSON. Alpha 0.1 shipped no physical device mappings. The headless CLI can save
+a generated physical HID definition locally, with each unit's calibration in a
+separate file.
 
 Personal calibration values are separate from globally reusable hardware definitions.
+Local calibrations name their definition and bind to a hash of the selected HID
+interface path; that local hash is never exported in a community report.
 
 ### 5. Calibration / teaching
 
@@ -122,8 +127,11 @@ observation:
 - produce a local mapping
 - produce a sanitized report suitable for contribution
 
-The desktop currently supplies those samples from a synthetic fixture. It does
-not read raw HID reports from a selected physical device. The saved data
+The desktop currently supplies samples from a synthetic fixture. The Windows
+CLI reads one selected HID interface, converts supported button/scalar-value
+reports to bounded timestamped observations, and passes them to this same core
+session. Eight-position HID hats with null state become four D-pad buttons.
+Other value arrays and unsupported hat layouts are not mapped. The saved data
 distinguishes:
 - global device mapping facts
 - per-unit calibration facts
@@ -220,19 +228,21 @@ Tests should be able to provide timestamped input events and assert timestamped 
 
 ### 11. Hardware report
 
-A contribution report v2 contains only:
+A contribution report v3 contains only:
 
-- ControllerOS version
-- device identifiers needed for matching
+- ControllerOS version and commit
+- optional retail/model name and connection mode
+- device identifiers needed for matching, including revision when available
 - HID/controller capability summary
 - mapping observations
 - calibration evidence keyed by generated anonymous control IDs
+- standard controls marked unavailable during teaching
 - generated mapping candidate
-- validation results
+- validation results and evidence level
 
 The exporter replaces raw control labels with stable ordinal IDs such as
 `button-0` and `axis-0`; this prevents identifier-like input labels from
-leaking into a report. It does not intentionally contain:
+leaking into a report. The schema has no fields for:
 
 - username
 - computer name
@@ -242,13 +252,13 @@ leaking into a report. It does not intentionally contain:
 - account identifiers
 - unrelated system telemetry
 
-The exact v2 JSON shape, field types, enum strings, and pre-serialization
+The exact v3 JSON shape, field types, enum strings, and pre-serialization
 validation rules are documented in [HARDWARE_REPORT.md](HARDWARE_REPORT.md).
 
 ### 12. Headless control boundary
 
-The long-term application boundary should expose core operations independently
-of WPF so automation and remote maintainers can:
+The CLI exposes the core operations independently of WPF so automation and
+remote maintainers can:
 
 - list devices and capabilities
 - inspect normalized/raw observations where supported

@@ -23,6 +23,8 @@ public sealed class DeviceTeachingSession
     public IReadOnlyCollection<ControlId> IdentifiedControls => Array.AsReadOnly(mappings.Keys.Order().ToArray());
     public bool IsComplete => mappings.Count + skipped.Count == ControlCatalog.All.Count;
 
+    public DeviceControlMapping? GetIdentifiedMapping(ControlId target) => mappings.GetValueOrDefault(target);
+
     public void Observe(ControlId target, IEnumerable<RawInputSample> samples)
     {
         if (!Enum.IsDefined(target))
@@ -138,7 +140,8 @@ public sealed class DeviceTeachingSession
     {
         if (!IsComplete || mappings.Count == 0)
             throw new InvalidOperationException("Complete the control teaching flow before previewing calibration.");
-        var calibration = new DeviceCalibration(DeviceCalibration.CurrentSchemaVersion, calibrationId,
+        string definitionId = $"hid-{device.Match.VendorId:x4}-{device.Match.ProductId:x4}-{device.Match.UsagePage:x4}-{device.Match.Usage:x4}";
+        var calibration = new DeviceCalibration(DeviceCalibration.CurrentSchemaVersion, calibrationId, definitionId,
             new System.Collections.ObjectModel.ReadOnlyDictionary<string, ControlCalibration>(new SortedDictionary<string, ControlCalibration>(calibrations, StringComparer.Ordinal)));
         if (!calibration.IsValid)
             throw new DeviceDefinitionFormatException("Teaching samples did not produce valid per-unit calibration values.");
