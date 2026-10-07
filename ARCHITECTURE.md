@@ -2,7 +2,14 @@
 
 ## Objective
 
-ControllerOS is a Windows-first programmable controller runtime. The architecture must keep controller-independent logic isolated from physical hardware and virtual-output implementations.
+ControllerOS is a headless-first programmable controller runtime with Windows as
+the initial physical/virtual device platform. The architecture must keep
+controller-independent logic isolated from physical hardware, frontends, and
+virtual-output implementations.
+
+The runtime must be operable and testable without a graphical session. CLI,
+desktop, automation, and future AI/API frontends should all target the same core
+contracts rather than duplicating controller logic.
 
 The core invariant is:
 
@@ -19,6 +26,17 @@ Output adapter
 ```
 
 Everything above and below the normalized state boundary is replaceable.
+
+Frontends are also replaceable:
+
+```text
+CLI  ───────┐
+Desktop UI ─┼→ ControllerOS application/core services
+AI/API ─────┘
+```
+
+No release-critical controller behavior should permanently require manual GUI
+interaction when it can be exposed through a headless command/API.
 
 ## Alpha implementation choice
 
@@ -134,7 +152,9 @@ intermediate representation / bytecode
 ControllerVM
 ```
 
-The visual editor, future AI configuration, and source editor must converge on the same validated model rather than maintaining separate execution engines.
+The CLI, desktop editor, future visual editor, future AI configuration, and
+source editor must converge on the same validated model rather than maintaining
+separate execution engines.
 
 ### 7. ControllerVM
 
@@ -225,7 +245,27 @@ leaking into a report. It does not intentionally contain:
 The exact v2 JSON shape, field types, enum strings, and pre-serialization
 validation rules are documented in [HARDWARE_REPORT.md](HARDWARE_REPORT.md).
 
-### 12. AI integration boundary
+### 12. Headless control boundary
+
+The long-term application boundary should expose core operations independently
+of WPF so automation and remote maintainers can:
+
+- list devices and capabilities
+- inspect normalized/raw observations where supported
+- compile/validate/simulate profiles
+- run/stop profiles
+- teach unknown devices
+- export sanitized hardware evidence
+- query diagnostics
+
+A CLI should be a thin frontend over these same services. It must not become a
+parallel implementation of controller behavior.
+
+Manual GUI testing is useful evidence but should not remain a permanent
+maintainer bottleneck. Physical-device evidence may come from contributors who
+own the hardware.
+
+### 13. AI integration boundary
 
 AI is not part of the Alpha 0.1 completion requirement.
 
