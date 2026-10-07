@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using ControllerOS.Core.Reports;
 
 namespace ControllerOS.Core.Devices;
 
@@ -23,8 +24,16 @@ public sealed class RawDeviceDescriptor
 {
     public DeviceMatchRule Match { get; }
     public IReadOnlyList<RawControlDescriptor> Controls { get; }
+    public ushort? Revision { get; }
+    public string? RetailModelName { get; }
+    public string ConnectionMode { get; }
 
-    public RawDeviceDescriptor(DeviceMatchRule match, IEnumerable<RawControlDescriptor> controls)
+    public RawDeviceDescriptor(
+        DeviceMatchRule match,
+        IEnumerable<RawControlDescriptor> controls,
+        ushort? revision = null,
+        string? retailModelName = null,
+        string connectionMode = "unknown")
     {
         ArgumentNullException.ThrowIfNull(match);
         ArgumentNullException.ThrowIfNull(controls);
@@ -33,6 +42,13 @@ public sealed class RawDeviceDescriptor
         Match = match;
         Controls = Array.AsReadOnly(controls.Take(129).ToArray());
         RawControlDescriptorValidator.Validate(Controls);
+        if (retailModelName is not null && !HardwareReportIdentity.IsSafeRetailModelName(retailModelName))
+            throw new ArgumentException("Retail model name must be a short, printable hardware name without path separators.", nameof(retailModelName));
+        if (!HardwareReportIdentity.IsValidConnectionMode(connectionMode))
+            throw new ArgumentException("Connection mode must be usb, bluetooth, or unknown.", nameof(connectionMode));
+        Revision = revision;
+        RetailModelName = retailModelName;
+        ConnectionMode = connectionMode;
     }
 }
 
@@ -286,14 +302,33 @@ public sealed record ControlCalibration(
         });
 }
 
-public sealed record DeviceCalibration(int SchemaVersion, string CalibrationId, IReadOnlyDictionary<string, ControlCalibration> Controls)
+public sealed record DeviceCalibration(
+    int SchemaVersion,
+    string CalibrationId,
+    string DefinitionId,
+    IReadOnlyDictionary<string, ControlCalibration> Controls,
+    string? UnitFingerprint = null)
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public bool IsValid => SchemaVersion == CurrentSchemaVersion &&
         Guid.TryParseExact(CalibrationId, "N", out _) &&
+        IsValidDefinitionId(DefinitionId) &&
+        (UnitFingerprint is null || UnitFingerprint.Length == 64 && UnitFingerprint.All(Uri.IsHexDigit)) &&
         Controls is not null && Controls.Count is > 0 and <= 128 &&
         Controls.All(pair => RawControlDescriptorValidator.IsValidId(pair.Key) && pair.Value is not null && pair.Value.IsValid);
+
+    public bool IsCompatibleWith(DeviceDefinition definition) =>
+        definition is not null && IsValid && DefinitionId == definition.Id && Controls.Count == definition.Mappings.Count &&
+        definition.Mappings.All(mapping => Controls.TryGetValue(mapping.RawControlId, out ControlCalibration? calibration) &&
+            calibration.Mode == mapping.Mode && calibration.Minimum >= mapping.RawMinimum && calibration.Maximum <= mapping.RawMaximum);
+
+    public bool MatchesUnit(string? fingerprint) => UnitFingerprint is not null && fingerprint is not null &&
+        string.Equals(UnitFingerprint, fingerprint, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsValidDefinitionId(string? id) => id is not null && id.Length is > 0 and <= 80 &&
+        (char.IsAsciiLetterLower(id[0]) || char.IsAsciiDigit(id[0])) &&
+        id.All(character => char.IsAsciiLetterLower(character) || char.IsAsciiDigit(character) || character is '.' or '_' or '-');
 }
 
 public sealed record SavedDeviceDefinition(string DefinitionPath, string CalibrationPath);
@@ -312,12 +347,8 @@ public sealed class DeviceDefinitionStore
     public SavedDeviceDefinition Save(DeviceDefinition definition, DeviceCalibration calibration)
     {
         string serializedDefinition = DeviceDefinitionJson.Serialize(definition);
-        if (!calibration.IsValid)
+        if (!calibration.IsCompatibleWith(definition))
             throw new DeviceDefinitionFormatException("Calibration data is invalid.");
-        if (definition.Mappings.Any(mapping => !calibration.Controls.TryGetValue(mapping.RawControlId, out ControlCalibration? value) || value.Mode != mapping.Mode ||
-                value.Minimum < mapping.RawMinimum || value.Maximum > mapping.RawMaximum) ||
-            calibration.Controls.Keys.Any(id => definition.Mappings.All(mapping => mapping.RawControlId != id)))
-            throw new DeviceDefinitionFormatException("Calibration controls must correspond to their reusable definition mappings and stay within their raw ranges.");
 
         string definitionPath = Path.Combine(root, "definitions", definition.Id + ".json");
         string calibrationPath = Path.Combine(root, "calibrations", calibration.CalibrationId + ".json");

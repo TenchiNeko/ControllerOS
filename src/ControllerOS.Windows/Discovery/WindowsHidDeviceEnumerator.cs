@@ -6,7 +6,7 @@ using Microsoft.Win32.SafeHandles;
 namespace ControllerOS.Windows;
 
 /// <summary>Enumerates currently-present HID interfaces and their public HID capabilities.</summary>
-public sealed class WindowsHidDeviceEnumerator : IWindowsDeviceEnumerator
+public sealed partial class WindowsHidDeviceEnumerator : IWindowsDeviceEnumerator
 {
     private const uint DevicePresent = 0x00000002;
     private const uint DeviceInterface = 0x00000010;
@@ -107,8 +107,15 @@ public sealed class WindowsHidDeviceEnumerator : IWindowsDeviceEnumerator
             capabilities?.InputReportByteLength,
             capabilities?.OutputReportByteLength,
             capabilities?.NumberInputButtonCaps,
-            capabilities?.NumberInputValueCaps);
+            capabilities?.NumberInputValueCaps,
+            GetConnectionMode(instanceId));
     }
+
+    private static string GetConnectionMode(string? instanceId) => instanceId?.StartsWith("USB\\", StringComparison.OrdinalIgnoreCase) == true
+        ? "usb"
+        : instanceId?.StartsWith("BTHENUM\\", StringComparison.OrdinalIgnoreCase) == true || instanceId?.StartsWith("BTHLE\\", StringComparison.OrdinalIgnoreCase) == true
+            ? "bluetooth"
+            : "unknown";
 
     private static string? GetInstanceId(SafeDeviceInfoSetHandle deviceSet, ref DeviceInfoData deviceInfo)
     {
@@ -223,7 +230,7 @@ public sealed class WindowsHidDeviceEnumerator : IWindowsDeviceEnumerator
         protected override bool ReleaseHandle() => Native.SetupDiDestroyDeviceInfoList(handle);
     }
 
-    private static class Native
+    private static partial class Native
     {
         [DllImport("hid.dll", ExactSpelling = true)]
         internal static extern void HidD_GetHidGuid(out Guid hidGuid);

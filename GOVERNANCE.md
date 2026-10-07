@@ -1,63 +1,62 @@
 # Repository governance
 
-Recorded on 2026-10-07 for the Headless Community Bridge.
-
-## Baseline inspected before changes
-
-- Repository visibility was public and `main` was the default branch.
-- The repository owner, `TenchiNeko`, was the authenticated GitHub CLI user
-  and had repository `admin` permission. The CLI reported scopes `repo`,
-  `read:org`, and `gist`; no credential value is recorded here.
-- All three merge methods were enabled: merge commits, squash, and rebase.
-  Auto-merge and delete-branch-on-merge were disabled.
-- GitHub Actions was enabled and allowed all actions. The default workflow
-  token was read-only, and Actions could not approve pull requests. SHA
-  pinning was not required.
-- `main` had no branch-protection rule or repository ruleset.
-- The existing CI check on the latest main commit was the GitHub Actions check
-  `build-test-format`; it completed successfully. A pushed test-branch run is
-  still required before adding it as a merge requirement.
+Repository settings were inspected and recorded on 2026-10-07 before the
+Headless Community Bridge changes. The repository remains public, owned by
+`TenchiNeko`, with `main` as its default branch. No collaborators, teams,
+branches, tags, releases, issues, or historical commits were changed.
 
 ## Contribution and merge model
 
-Community members may propose changes through pull requests. The repository
-does not use a fixed contributor or team allowlist, and this configuration
-does not add collaborators or teams. Squash merging is preferred; rebase
-merging remains available, while merge commits are disabled.
+Contributions are proposed through pull requests. The repository does not use a
+fixed contributor or team allowlist. Squash merging is preferred; rebase
+merging remains enabled, and merge commits are disabled. Auto-merge and
+delete-branch-on-merge remain disabled.
 
-## Planned main protection
+## Protection on `main`
 
-After the exact CI check passes on a test branch, the `main` ruleset will
-require pull requests, that GitHub Actions check, and resolved review
-conversations. It will block force pushes and branch deletion. It will require
-zero approvals, not require CODEOWNERS approval or signed commits, and not
-restrict who may contribute.
+The active repository ruleset `main-protection` targets only
+`refs/heads/main`. It requires pull requests, prevents force-pushes and branch
+deletion, requires the `build-test-format` status check, and requires review
+conversation threads to be resolved. It requires zero approvals. It does not
+require CODEOWNERS approval, signed commits, deployments, or contributions from
+a fixed user or team.
 
-The proposed ruleset includes an explicit always-bypass entry for the
-repository owner. The authenticated owner matches the repository owner and
-has admin permission; the entry will be read back from GitHub after creation
-to verify recovery access. Use the bypass only to recover from a broken rule
-or urgent repository incident; do not use it as the ordinary merge path.
+GitHub currently reads `require_extra_approval_for_unattributed_changes` as
+enabled by default. GitHub documents that this rule has no effect when the
+required approval count is zero, which is the configured policy here.
+
+Before the ruleset was created, the authenticated GitHub CLI user was verified
+as `TenchiNeko`, repository owner, and repository admin. The ruleset's bypass
+entry was then read back from GitHub: user id `256011908`, bypass mode `always`,
+and `current_user_can_bypass=always`. This is the owner recovery path for a
+broken rule or urgent repository incident. Use it only for recovery; ordinary
+changes should use the PR path and pass CI. No other bypass actor is configured.
+The CLI authentication reported `repo`, `read:org`, and `gist` scopes, and the
+live repository API confirmed the required administration access. No token
+value was recorded.
 
 ## CI and Actions permissions
 
-The existing `build-test-format` check runs restore, Release build, tests, and
-formatting/analyzer verification. It was read from the live check run and
-workflow job. It will become required only after the pushed test-branch run
-passes.
+The exact required check name, `build-test-format` (GitHub Actions app id
+`15368`), was discovered on live main and passed on a pushed test branch before
+it was required. The successful test-branch run was `37636367335` at commit
+`3a41dfcffef7b2407340f4b2af15c75e7e5d33f0`. The required `build-test-format`
+job runs the Release build, tests, formatting, and Windows artifact publish. It
+depends on `windows-cli-smoke`, which runs the same automated suite plus the
+headless self-test, including its Windows device-enumeration diagnostic, on a
+Windows runner.
 
-The current workflow only needs repository contents read access. The
-repository's default `GITHUB_TOKEN` permissions remain read-only. The planned
-artifact upload will use the workflow-run artifact mechanism and will not
-grant repository contents write access. If a future workflow needs additional
-permission, add only that specific permission to that workflow and explain it
-here.
+GitHub Actions is enabled and allows all actions. Repository default workflow
+token permissions are read-only; workflows cannot approve pull requests. The
+CI workflow needs only repository contents read access. The Windows artifact
+will use the workflow artifact service, with no repository contents write
+permission. SHA pinning is not required by the current repository setting.
 
 ## Approval policy as maintainers emerge
 
-Approval count remains zero while the project has no independent maintainer
-pool. Revisit this after at least two people have repeatedly reviewed and
-maintained the project. At that point, consider requiring one approval from a
-non-author maintainer, then raise the count only if the active maintainer pool
-can reliably provide it. Keep the owner emergency bypass so a policy change
-cannot lock the repository owner out.
+The approval count remains zero while the project has no independent
+maintainer pool. Revisit this after at least two people have repeatedly
+reviewed and maintained the project. Consider requiring one approval from a
+non-author maintainer first; increase the count only when the active pool can
+reliably provide it. Retain the owner recovery bypass so a policy change cannot
+lock the repository owner out.

@@ -14,28 +14,34 @@ runtime and sending output to a debug sink or an Xbox-style virtual controller.
 
 See [VISION.md](VISION.md) for the headless-first, community-hardware direction.
 
-The alpha includes:
+Alpha 0.1 remains the first architectural proof. The current Headless Community
+Bridge adds:
 
-- a portable model for standard buttons, axes, and triggers
-- deterministic synthetic input, recorded output, and timestamped scenarios
-- a sandboxed ControllerScript compiler and runtime with yielding timers
-- keyboard test input and Windows HID enumeration
-- versioned profile and device-definition JSON with local calibration storage
-- a teaching and report workflow exercised with a synthetic unknown device
-- a Windows virtual Xbox output adapter and desktop editor/runtime
+- a headless Windows CLI over the existing core/runtime
+- selected-device raw Windows HID capture for supported button and scalar-value controls
+- guided physical teaching through the existing calibration engine
+- privacy-bounded version 3 reports and separate per-unit calibration
+- replay fixtures, privacy tests, self-test, and CI-built Windows artifacts
+
+The original Alpha 0.1 milestones and report remain historical evidence; they
+are not rewritten by this phase.
 
 ## Controller path
 
 ```text
-physical / keyboard / synthetic input
-                   ↓
-          normalized controller state
-                   ↓
-       ControllerScript runtime and timers
-                   ↓
-             normalized output
-                   ↓
-    debug preview / virtual controller
+physical controller → selected raw HID capture → headless CLI
+                                      ↓
+                         existing teaching/calibration engine
+                                      ↓
+                         validated local device mapping
+                                      ↓
+                         privacy-bounded community report
+
+keyboard / XInput / synthetic input → normalized controller state
+                                      ↓
+                         ControllerScript runtime and timers
+                                      ↓
+                         debug preview / virtual controller
 ```
 
 The intended frontend model is:
@@ -46,14 +52,37 @@ Desktop UI ─┼→ same ControllerOS core/runtime
 AI/API ─────┘
 ```
 
-Future physical-device teaching should also be available headlessly so a
-hardware owner can generate a validated, privacy-bounded contribution report
-without requiring a graphical session.
+The WPF desktop remains an optional frontend. The CLI supports remote and SSH
+use without an interactive desktop. Generic HID exposes raw buttons, scalar
+values, and supported D-pad hats; proprietary or array-based controls are
+reported as unavailable unless ControllerOS has evidence it understands.
 
-Windows HID enumeration lists interfaces and matches device definitions. The
-teaching screen currently uses synthetic raw samples; it does not collect raw
-reports from a physical HID device. The desktop's normalized input inspector
-shows the active test or Windows XInput source.
+## Headless CLI
+
+The Windows CLI is named `controlleros.exe`. Run `controlleros --help` for the
+full syntax. Typical commands are:
+
+```powershell
+.\controlleros.exe self-test --json
+.\controlleros.exe devices
+.\controlleros.exe inspect controller-001
+.\controlleros.exe teach controller-001
+.\controlleros.exe validate .\profile.json
+.\controlleros.exe simulate .\profile.json --json
+.\controlleros.exe export-report
+```
+
+`devices` lists only generic HID gamepad/joystick collections. Device IDs are
+temporary indexes from the current enumeration. `teach` prompts for each
+standard control, supports `skip`, previews the mapping before saving, and
+stores each unit's calibration separately. `runtime start` requires a profile,
+device ID, definition ID, and calibration ID; `runtime stop` sends a same-user
+local stop request. Non-interactive commands support `--json`. Exit codes are
+stable: 0 success, 1 operational failure, 2 usage error, 3 invalid input,
+4 unsupported platform, and 130 cancellation.
+
+See [HARDWARE_CONTRIBUTION.md](HARDWARE_CONTRIBUTION.md) for the non-programmer
+artifact and report workflow.
 
 ## ControllerScript
 
@@ -77,17 +106,18 @@ It has no loops, layers, imports, collections, or host-computer APIs. See
 ## Devices and community reports
 
 The device-definition format separates reusable raw-to-standard mappings from
-per-unit calibration. The desktop can enumerate Windows HID interfaces, show
-known/unknown status when identifiers match a local definition, and run the
-teaching steps against the built-in synthetic unknown-device fixture. Reports
-contain only allowlisted device, capability, mapping, calibration, version, and
-validation fields. Raw control labels are replaced with anonymous ordinal IDs
-in exported reports. Review a report before sharing it.
-The exact serialized v2 property names, types, enum values, and validation
+per-unit calibration. The headless CLI captures one selected Windows HID
+interface and feeds observations into the existing teaching session. Reports
+contain only allowlisted device, capability, mapping, calibration, version,
+commit, evidence, and validation fields. Raw control labels are replaced with
+anonymous ordinal IDs in exported reports. Review a report before sharing it.
+The exact serialized v3 property names, types, enum values, and validation
 rules are in [HARDWARE_REPORT.md](HARDWARE_REPORT.md).
 
-No physical controller model is claimed as supported in this alpha. Hardware
-support evidence must use the levels in [CONTRIBUTING.md](CONTRIBUTING.md).
+No physical controller model is claimed as maintainer-tested. Replay fixtures
+validate the software pipeline, but physical-device mapping remains
+community-test-needed. Hardware evidence levels are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Windows desktop
 
@@ -136,24 +166,32 @@ Run it in an elevated Windows terminal:
 dotnet run --project tests/ControllerOS.Windows.Integration/ControllerOS.Windows.Integration.csproj -c Release
 ```
 
-CI runs the build, automated tests, and format verification. The Windows
-integration check installs/starts a virtual device and is kept manual.
+CI runs the automated suite and headless self-test on Windows, then runs the
+Release build, tests, format verification, and a self-contained `win-x64` CLI
+publish. The published experimental artifact
+includes build commit/version, dependency notices, and a SHA-256 manifest. It is
+downloaded from the successful workflow run's Artifacts section, not a Release.
+The Windows integration check starts a virtual controller and exercises XInput
+and selected-device raw HID capture; it remains a manual VM check.
 
 ## Scope and safety
 
-Alpha 0.1 is Windows-first. It does not support consoles, every proprietary
-controller feature, native profile plugins, or physical raw-HID teaching. It
+The current phase is Windows-first. It does not support consoles, every
+proprietary controller feature, or native profile plugins. Physical behavior
+still needs contributor validation. It
 does not include anti-cheat circumvention, detection evasion, hardware-identity
 spoofing, process injection, game memory manipulation, or packet manipulation.
 
 ## Repository status
 
 See [PROJECT_STATUS.md](PROJECT_STATUS.md), [FINAL_REPORT.md](FINAL_REPORT.md),
-and [VISION.md](VISION.md) for milestone evidence, current limitations, and
-the forward community-maintained direction. The contract and development files are
+and [HEADLESS_BRIDGE_FINAL_REPORT.md](HEADLESS_BRIDGE_FINAL_REPORT.md) for
+phase evidence and current validation gaps. The contract and development files are
 [ARCHITECTURE.md](ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md),
 [ACCEPTANCE.md](ACCEPTANCE.md), [HARDWARE_REPORT.md](HARDWARE_REPORT.md),
-[CONTRIBUTING.md](CONTRIBUTING.md),
+[HARDWARE_CONTRIBUTION.md](HARDWARE_CONTRIBUTION.md),
+[HEADLESS_BRIDGE_ACCEPTANCE.md](HEADLESS_BRIDGE_ACCEPTANCE.md),
+[GOVERNANCE.md](GOVERNANCE.md), [CONTRIBUTING.md](CONTRIBUTING.md),
 [AGENTS.md](AGENTS.md), and [CODEX_START.md](CODEX_START.md).
 
 ## License

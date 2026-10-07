@@ -15,8 +15,8 @@ public static class DeviceDefinitionNormalizer
         DeviceDefinitionValidationResult validation = DeviceDefinitionValidator.Validate(definition);
         if (!validation.IsValid)
             throw new DeviceDefinitionFormatException(string.Join(Environment.NewLine, validation.Errors));
-        if (!calibration.IsValid)
-            throw new DeviceDefinitionFormatException("Calibration data is invalid.");
+        if (!calibration.IsCompatibleWith(definition))
+            throw new DeviceDefinitionFormatException("Calibration data is invalid or belongs to a different device definition.");
 
         DeviceControlMapping mapping = definition.Mappings.SingleOrDefault(item => item.RawControlId == rawControlId)
             ?? throw new ArgumentException($"Raw control '{rawControlId}' is not mapped.", nameof(rawControlId));

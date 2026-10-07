@@ -18,7 +18,8 @@ public sealed record WindowsHidDevice(
     ushort? InputReportBytes,
     ushort? OutputReportBytes,
     ushort? InputButtonCapabilityCount,
-    ushort? InputValueCapabilityCount);
+    ushort? InputValueCapabilityCount,
+    string ConnectionMode = "unknown");
 
 /// <summary>Windows HID enumeration boundary for the device catalog and UI.</summary>
 public interface IWindowsDeviceEnumerator

@@ -197,17 +197,17 @@ The platform should not add features whose purpose is:
 
 The interesting problem is programmable controller behavior, hardware abstraction, accessibility, automation, and community-supported device knowledge.
 
-## Direction after Alpha 0.1
+## Headless Community Bridge
 
-Alpha 0.1 proved the hardware-independent core, ControllerScript runtime, Windows virtual output path, synthetic teaching system, and desktop frontend.
+Alpha 0.1 remains the historical proof of the core runtime, language, synthetic
+teaching system, and Windows virtual output path. The Headless Community Bridge
+adds a Windows CLI, selected-device raw HID capture, teaching through the
+existing calibration engine, privacy-bounded reports, and CI-built Windows
+artifacts. Physical controller support remains evidence-based: replay fixtures
+validate software behavior, while contributors provide the physical evidence
+that maintainers cannot synthesize.
 
-The highest-value next architectural work is:
-
-1. **Headless CLI** over the existing core.
-2. **Physical raw-HID capture** connected to the existing teaching engine.
-3. **Headless device teaching and report export**.
-4. **Automated Windows build artifacts** suitable for community testing.
-5. **Community hardware validation** without requiring maintainer-owned devices.
-6. Only after those foundations are working: richer language/frontends and optional AI-assisted configuration.
-
-This ordering keeps the project focused on the mechanism that makes community ownership possible.
+The bridge is the current project focus. It keeps AI, broader language work,
+console support, and unrelated frontends outside this phase. Physical-device
+reports and interactive visual checks remain useful community evidence, not a
+reason for remote maintainers to stop software development.

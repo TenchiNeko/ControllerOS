@@ -12,23 +12,21 @@ provides discovery, teaching, validation, report, fixture, and CI tooling.
 
 ### Hardware owners
 
-The Alpha 0.1 teaching screen only accepts samples from its built-in synthetic
-unknown-device fixture. It cannot yet collect raw reports from a physical HID
-device. A report exported by that screen describes the synthetic fixture; do
-not submit it as evidence for a physical controller.
+Use the experimental Windows artifact and headless `controlleros` CLI to
+inspect and teach a selected generic HID gamepad or joystick. The complete
+non-programmer workflow is in
+[HARDWARE_CONTRIBUTION.md](HARDWARE_CONTRIBUTION.md). The CLI reuses the core
+teaching engine, saves a reusable local definition and separate per-unit
+calibration, then exports a privacy-bounded report.
 
-For a physical controller contribution, open the hardware-support issue and
-include the retail/model name, connection mode, Windows version, the controls
-you tested, and how you observed their raw values.
+Review the report before posting it with the Hardware support report issue
+template. State the retail/model name only if known, connection mode, controls
+tested or skipped, and evidence level. Generic HID arrays and special functions
+may not be independently observable; describe them as unavailable unless the
+report contains evidence the mapper understands.
 
-The intended future workflow is a headless `controlleros teach` /
-`controlleros export-report` path so contributors can generate evidence
-without maintainer involvement or a graphical session. Until that path exists,
-follow the manual evidence rules below. Mark untested controls and
-the evidence level explicitly. Do not include device paths, serial numbers,
-usernames, machine names, IP addresses, unrelated USB inventory, or raw system
-logs. A data-only definition can be proposed with a small synthetic fixture
-once the raw control identifiers and ranges are known.
+The artifact is experimental, distributed through GitHub Actions artifacts,
+and expires after 30 days. No public release or version tag exists yet.
 
 ### Mapping contributors
 
@@ -38,9 +36,9 @@ A mapping contribution should include:
 
 - device identifiers needed for matching
 - normalized control mapping
-- a synthetic fixture or a sanitized report that corresponds to the physical device
+- a replay fixture or sanitized report that corresponds to the physical device
 - connection mode
-- ControllerOS version
+- ControllerOS version and commit
 - what was physically tested
 - what remains unverified
 
@@ -71,9 +69,9 @@ Do not promote a device to a stronger evidence level without supporting evidence
 
 ## Privacy
 
-Hardware reports exported by ControllerOS use an allowlisted schema, but the
-Alpha 0.1 desktop currently exports only synthetic teaching data. Do not
-represent that report as physical-device evidence.
+Hardware reports exported by ControllerOS use an allowlisted schema. Synthetic
+fixtures and virtual output are software evidence only; do not represent them
+as physical-device evidence.
 
 Do not request contributors to post:
 
@@ -106,6 +104,10 @@ General controller mapping, automation primitives, accessibility behavior, timin
 ## Pull requests
 
 Prefer small PRs with one coherent purpose.
+
+Changes to `main` go through pull requests and the required CI check. The
+current owner bypass and zero-approval policy are documented in
+[GOVERNANCE.md](GOVERNANCE.md).
 
 A PR should state:
 

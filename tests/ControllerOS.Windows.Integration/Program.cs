@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ControllerOS.Core.Controls;
+using ControllerOS.Core.Devices;
 using ControllerOS.Core.Input;
 using ControllerOS.Windows;
 
@@ -44,17 +45,28 @@ try
     if (virtualDevice is null || virtualDevice.InputReportBytes is null or 0)
         throw new InvalidOperationException("HID discovery did not report the new Xbox 360 virtual device and its input report size.");
 
+    using WindowsHidDeviceEnumerator.WindowsHidInputCapture rawCapture = enumerator.OpenInputCapture(virtualDevice);
+    using var rawCaptureStop = new CancellationTokenSource();
+    var rawBaselineReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    Task<IReadOnlyList<RawInputSample>> rawTransitionTask = WaitForRawHidTransitionAsync(rawCapture, rawBaselineReady, rawCaptureStop.Token);
+    await rawBaselineReady.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
     WindowsControllerInput input = WaitForNewInput(inputSlots, connectedBefore, TimeSpan.FromSeconds(5));
     OutputState action = OutputState.Neutral
         .WithValue(ControlValue.Button(ControlId.EAST, pressed: true))
         .WithValue(ControlValue.Trigger(ControlId.LEFT_TRIGGER, 0.75))
         .WithValue(ControlValue.Axis(ControlId.LEFT_STICK_X, 0.5));
     output.Commit(TimeSpan.FromMilliseconds(1), action);
+    IReadOnlyList<RawInputSample> rawTransition = await rawTransitionTask.WaitAsync(TimeSpan.FromSeconds(5));
+    rawCaptureStop.Cancel();
+    if (rawTransition.Count == 0)
+        throw new InvalidOperationException("Selected virtual gamepad produced an empty raw HID input report.");
     ControllerInputEvent pressed = WaitForTransition(input, ControlId.EAST, InputEventKind.Press, TimeSpan.FromSeconds(5));
     ControllerState activeState = input.Snapshot;
     if (!activeState.Get(ControlId.EAST).IsPressed || Math.Abs(activeState.Get(ControlId.LEFT_TRIGGER).Value - 0.75) > 0.01 || Math.Abs(activeState.Get(ControlId.LEFT_STICK_X).Value - 0.5) > 0.01)
         throw new InvalidOperationException("The XInput source did not return the normalized button, trigger, and axis values.");
     Console.WriteLine($"PASS: discovered {virtualDevice.Product}, VID:PID {virtualDevice.VendorId:X4}:{virtualDevice.ProductId:X4}, usage {virtualDevice.UsagePage:X4}:{virtualDevice.Usage:X4}");
+    Console.WriteLine($"PASS: selected HID capture decoded {rawTransition.Count} raw control observations without exporting its device path");
     Console.WriteLine($"PASS: XInput slot {input.UserIndex} returned EAST press, LEFT_TRIGGER 0.75, and LEFT_STICK_X 0.50");
 
     output.Dispose();
@@ -90,6 +102,25 @@ static WindowsControllerInput WaitForNewInput(WindowsControllerInput[] inputs, b
     }
 
     throw new InvalidOperationException("No new XInput slot appeared. Ensure the VM has a free controller slot.");
+}
+
+static async Task<IReadOnlyList<RawInputSample>> WaitForRawHidTransitionAsync(
+    WindowsHidDeviceEnumerator.WindowsHidInputCapture capture,
+    TaskCompletionSource baselineReady,
+    CancellationToken cancellationToken)
+{
+    var previous = new Dictionary<string, double>(StringComparer.Ordinal);
+    await foreach (IReadOnlyList<RawInputSample> report in capture.ReadReportsAsync(cancellationToken))
+    {
+        bool changed = report.Any(sample => previous.TryGetValue(sample.ControlId, out double value) && value != sample.Value);
+        foreach (RawInputSample sample in report)
+            previous[sample.ControlId] = sample.Value;
+        if (previous.Count > 0)
+            baselineReady.TrySetResult();
+        if (changed)
+            return report;
+    }
+    throw new EndOfStreamException("Selected virtual HID interface disconnected during raw capture.");
 }
 
 static ControllerInputEvent WaitForTransition(WindowsControllerInput input, ControlId control, InputEventKind kind, TimeSpan timeout)
