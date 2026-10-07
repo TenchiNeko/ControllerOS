@@ -63,11 +63,14 @@ dotnet format ControllerOS.sln --verify-no-changes --no-restore
 The current workspace Release build passes with zero warnings/errors; the suite
 passes 47/47 tests; format verification passes; and `controlleros self-test
 --json` passes 5/5 applicable checks on Linux. A self-contained `win-x64` CLI
-passed its artifact hash check and all 5 self-test checks on VM 101. The Windows
-integration probe opened the virtual Xbox HID interface, enumerated 14
-controls, canceled an idle raw read, verified normalized XInput output, and
-confirmed clean disconnect and interface removal. No physical gamepad was
-attached; physical HID teaching remains community-test-needed.
+published from commit `deb47eda637bb67bb34b9a9d8719acf171125bc3` passed its
+200-file artifact hash check and all 5 self-test checks on VM 101. A detached
+clean checkout at that commit also passed the Release build, 47/47 tests, and
+format verification. The Windows integration probe opened the virtual Xbox
+HID interface, enumerated 14 controls, canceled an idle raw read, verified
+normalized XInput output, and confirmed clean disconnect and interface removal.
+No physical gamepad was attached; physical HID teaching remains
+community-test-needed.
 
 The phase acceptance ledger is HEADLESS_BRIDGE_ACCEPTANCE.md. Its final review
 evidence, CI artifact result, implementation summary, and limitations are in
@@ -96,7 +99,10 @@ phase-complete: GitHub rejected the branch push because the authenticated OAuth
 App token lacks the `workflow` scope required to update
 `.github/workflows/ci.yml`. PR CI and the CI artifact upload therefore remain
 unverified. The exact rejection and remaining completion steps are recorded in
-HEADLESS_BRIDGE_FINAL_REPORT.md.
+HEADLESS_BRIDGE_FINAL_REPORT.md. The local branch includes reviewed
+implementation commit `deb47eda637bb67bb34b9a9d8719acf171125bc3`; the remote
+feature branch is still at `3a41dfcffef7b2407340f4b2af15c75e7e5d33f0`, and the
+current token reports only `gist`, `read:org`, and `repo`.
 
 After the owner refreshes the existing GitHub CLI authentication with the
 required scope, push the existing branch, complete the PR checks, merge under

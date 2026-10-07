@@ -8,8 +8,14 @@ merged.
 ## Source and governance
 
 - Base: public `main` at `a126a250e79411ca3fb8e6ceb55febaa2bf5a8b5`.
-- Implementation commit: `4c3b60faba2cf6740d185e5acf4d732cf1dcce77` on
+- Implementation commits include `4c3b60faba2cf6740d185e5acf4d732cf1dcce77`,
+  validation record `9d60607cbdc03cb3d93440cffef35e9cafa07bcc`, and reviewed
+  Windows HID follow-up `deb47eda637bb67bb34b9a9d8719acf171125bc3` on
   `feature/headless-community-bridge`.
+- `origin/main` remains at `a126a250e79411ca3fb8e6ceb55febaa2bf5a8b5`; the
+  remote feature branch remains at
+  `3a41dfcffef7b2407340f4b2af15c75e7e5d33f0` because GitHub rejected the
+  workflow-file push.
 - Alpha 0.1 history is unchanged. No tag or GitHub Release was created.
 - Governance settings were read from the live repository and configured as
   recorded in GOVERNANCE.md. The authenticated user retained owner/admin
@@ -42,13 +48,17 @@ merged.
 - `dotnet format ControllerOS.sln --verify-no-changes --no-restore` passed.
 - Linux `controlleros self-test --json` passed 5/5 applicable checks; Windows
   output and HID enumeration were correctly reported as not applicable.
-- A self-contained `win-x64` CLI package passed hash-manifest verification and
+- A self-contained `win-x64` CLI package from commit
+  `deb47eda637bb67bb34b9a9d8719acf171125bc3` included the pinned dependency
+  and license notices. All 200 package files passed hash verification, and
   `controlleros self-test --json` passed 5/5 checks on VM 101.
 - The self-contained Windows integration probe passed on VM 101: it opened the
   selected virtual Xbox HID interface, exposed 14 controls, canceled an idle
   input read, verified XInput button/trigger/stick normalization, observed
   disconnect neutralization, and confirmed virtual-interface removal.
 - `git diff --check` passed.
+- A detached clean checkout at `deb47eda637bb67bb34b9a9d8719acf171125bc3`
+  restored and passed the Release build, 47/47 tests, and format verification.
 - Independent review identified a HID multi-usage-range capability gap and an
   inaccurate cancellation success message. The parser now expands one scalar
   target for each reported usage, keeps repeated-usage value arrays explicitly
@@ -58,12 +68,12 @@ merged.
 
 ## Pending checks and evidence limits
 
-- The Windows smoke job, clean-checkout CI build, and uploaded artifact have not
-  run for this implementation because the branch push was rejected before a
-  PR could be created.
+- The Windows smoke job, GitHub clean-checkout CI run, and workflow artifact
+  upload have not run for this implementation because the branch push was
+  rejected before a PR could be created.
 - GitHub rejected the push because the authenticated OAuth App token lacks the
   `workflow` scope required to create or update `.github/workflows/ci.yml`.
-  The existing authentication reported `repo`, `read:org`, and `gist` scopes.
+  The live authentication still reports `repo`, `read:org`, and `gist` scopes.
   No token was exposed, no alternate credential was used, and no bypass of the
   repository governance model was attempted. The remote feature branch remains
   at its earlier governance-documentation commit.
