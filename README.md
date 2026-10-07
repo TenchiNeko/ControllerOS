@@ -1,10 +1,18 @@
 # ControllerOS
 
-**A programmable controller runtime with a hardware-independent core.**
+**A headless-first programmable controller platform with a hardware-independent core.**
 
-ControllerOS Alpha 0.1 is an early Windows application for mapping normalized
-controller input through a restricted script runtime and sending output to a
-debug sink or an Xbox-style virtual controller.
+ControllerOS is designed so the core can be built, tested, configured, and
+maintained remotely without requiring the maintainer to sit at a Windows
+desktop or physically own every controller. CLI/API automation, synthetic
+fixtures, and community-supplied hardware evidence are first-class parts of
+the long-term architecture; the WPF application is an optional frontend.
+
+ControllerOS Alpha 0.1 is the first architectural proof: a Windows-capable
+runtime for mapping normalized controller input through a restricted script
+runtime and sending output to a debug sink or an Xbox-style virtual controller.
+
+See [VISION.md](VISION.md) for the headless-first, community-hardware direction.
 
 The alpha includes:
 
@@ -19,7 +27,7 @@ The alpha includes:
 ## Controller path
 
 ```text
-keyboard / synthetic / Windows XInput input
+physical / keyboard / synthetic input
                    ↓
           normalized controller state
                    ↓
@@ -27,8 +35,20 @@ keyboard / synthetic / Windows XInput input
                    ↓
              normalized output
                    ↓
-    debug preview / virtual Xbox output
+    debug preview / virtual controller
 ```
+
+The intended frontend model is:
+
+```text
+CLI  ───────┐
+Desktop UI ─┼→ same ControllerOS core/runtime
+AI/API ─────┘
+```
+
+Future physical-device teaching should also be available headlessly so a
+hardware owner can generate a validated, privacy-bounded contribution report
+without requiring a graphical session.
 
 Windows HID enumeration lists interfaces and matches device definitions. The
 teaching screen currently uses synthetic raw samples; it does not collect raw
@@ -128,9 +148,9 @@ spoofing, process injection, game memory manipulation, or packet manipulation.
 
 ## Repository status
 
-See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [FINAL_REPORT.md](FINAL_REPORT.md)
-for milestone evidence, current limitations, and community contribution
-opportunities. The contract and development files are
+See [PROJECT_STATUS.md](PROJECT_STATUS.md), [FINAL_REPORT.md](FINAL_REPORT.md),
+and [VISION.md](VISION.md) for milestone evidence, current limitations, and
+the forward community-maintained direction. The contract and development files are
 [ARCHITECTURE.md](ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md),
 [ACCEPTANCE.md](ACCEPTANCE.md), [HARDWARE_REPORT.md](HARDWARE_REPORT.md),
 [CONTRIBUTING.md](CONTRIBUTING.md),
