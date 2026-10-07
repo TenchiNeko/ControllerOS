@@ -64,13 +64,20 @@ merged.
   target for each reported usage, keeps repeated-usage value arrays explicitly
   unsupported, and bounds expansion to 128 fields. The VM probe now reports
   cancellation success only after observing cancellation. Follow-up review
-  found no remaining P0/P1 issues.
+  found no remaining P0/P1 issues. This distinction follows Microsoft's HID
+  documentation: each usage in a range has its own data field, while multiple
+  values for one usage require `HidP_GetUsageValueArray` ([HID value capability
+  arrays](https://learn.microsoft.com/en-us/windows-hardware/drivers/hid/value-capability-arrays)).
 
 ## Pending checks and evidence limits
 
 - The Windows smoke job, GitHub clean-checkout CI run, and workflow artifact
   upload have not run for this implementation because the branch push was
   rejected before a PR could be created.
+- The workflow YAML parsed locally, and its self-contained publish, build
+  identity, license, and hash-manifest steps were reproduced from a clean
+  checkout. This does not substitute for a GitHub Actions run or artifact
+  upload.
 - GitHub rejected the push because the authenticated OAuth App token lacks the
   `workflow` scope required to create or update `.github/workflows/ci.yml`.
   The live authentication still reports `repo`, `read:org`, and `gist` scopes.
