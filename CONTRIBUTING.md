@@ -4,6 +4,10 @@ ControllerOS is intended to become easier to extend than to centrally maintain.
 
 You do not need to be a systems programmer to contribute.
 
+The project is intentionally designed so maintainers do not need to personally
+own every controller. Hardware owners provide physical evidence; ControllerOS
+provides discovery, teaching, validation, report, fixture, and CI tooling.
+
 ## Useful contribution types
 
 ### Hardware owners
@@ -15,7 +19,12 @@ not submit it as evidence for a physical controller.
 
 For a physical controller contribution, open the hardware-support issue and
 include the retail/model name, connection mode, Windows version, the controls
-you tested, and how you observed their raw values. Mark untested controls and
+you tested, and how you observed their raw values.
+
+The intended future workflow is a headless `controlleros teach` /
+`controlleros export-report` path so contributors can generate evidence
+without maintainer involvement or a graphical session. Until that path exists,
+follow the manual evidence rules below. Mark untested controls and
 the evidence level explicitly. Do not include device paths, serial numbers,
 usernames, machine names, IP addresses, unrelated USB inventory, or raw system
 logs. A data-only definition can be proposed with a small synthetic fixture
