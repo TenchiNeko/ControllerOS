@@ -59,6 +59,7 @@ public static class ControllerOsCli
             {
                 "help" => HelpResult(),
                 "devices" => Devices(deviceEnumerator ?? new WindowsHidDeviceEnumerator()),
+                "version" => Version(),
                 "inspect" => Inspect(deviceEnumerator ?? new WindowsHidDeviceEnumerator(), command.Arguments[0]),
                 "teach" => await TeachAsync(deviceEnumerator ?? new WindowsHidDeviceEnumerator(), command.Arguments, input, output).ConfigureAwait(false),
                 "validate" => Validate(command.Arguments[0]),
@@ -100,13 +101,14 @@ public static class ControllerOsCli
 
     private static CliResult HelpResult() => new(
         "ControllerOS is a headless Windows controller teaching and runtime CLI.\n" +
-        "Commands: devices, inspect, teach, validate, simulate, export-report, runtime start, runtime stop, self-test.\n" +
+        "Commands: version, devices, inspect, teach, validate, simulate, export-report, runtime start, runtime stop, self-test.\n" +
         "Use --json with non-interactive commands. Controller IDs are temporary one-based indexes from devices.",
         new
         {
             commands = new[]
             {
                 "controlleros devices [--json]",
+                "controlleros version [--json]",
                 "controlleros inspect <controller-id> [--json]",
                 "controlleros teach <controller-id> [--model <name>]",
                 "controlleros validate <profile-or-report.json> [--json]",
@@ -130,6 +132,13 @@ public static class ControllerOsCli
             : string.Join(Environment.NewLine, items.Select(item =>
                 $"{item.Id}  {item.Name}  VID:PID {item.VendorId:X4}:{item.ProductId:X4}  {item.ConnectionMode}"));
         return new(message, items);
+    }
+
+    private static CliResult Version()
+    {
+        string version = BuildVersion();
+        string commit = BuildCommit();
+        return new($"ControllerOS {version} ({commit})", new { version, commit });
     }
 
     private static CliResult Inspect(IWindowsDeviceEnumerator enumerator, string controllerId)
@@ -590,7 +599,7 @@ public static class ControllerOsCli
 
     private static string BuildVersion()
     {
-        string value = typeof(ControllerOsCli).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.2.0-alpha.1";
+        string value = typeof(ControllerOsCli).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.0-alpha.1";
         int metadata = value.IndexOf('+');
         return metadata < 0 ? value : value[..metadata];
     }

@@ -23,6 +23,14 @@ jobs:
         run: dotnet test ControllerOS.sln --configuration Release --no-build
       - name: Run headless self-test
         run: dotnet run --project src/ControllerOS.Cli/ControllerOS.Cli.csproj --configuration Release --no-build -- self-test --json
+      - name: Validate the included profile example
+        run: dotnet run --project src/ControllerOS.Cli/ControllerOS.Cli.csproj --configuration Release --no-build -- validate examples/starter-profile.json
+      - name: Simulate the included profile example
+        run: dotnet run --project src/ControllerOS.Cli/ControllerOS.Cli.csproj --configuration Release --no-build -- simulate examples/starter-profile.json --json
+      - name: Validate and simulate the stick response example
+        run: |
+          dotnet run --project src/ControllerOS.Cli/ControllerOS.Cli.csproj --configuration Release --no-build -- validate examples/stick-response-profile.json
+          dotnet run --project src/ControllerOS.Cli/ControllerOS.Cli.csproj --configuration Release --no-build -- simulate examples/stick-response-profile.json --json
 
   build-test-format:
     needs: windows-cli-smoke
@@ -48,24 +56,50 @@ jobs:
         env:
           CONTROLLEROS_COMMIT: ${{ github.sha }}
         run: |
+          set -euo pipefail
           dotnet publish src/ControllerOS.Cli/ControllerOS.Cli.csproj \
             --configuration Release \
             --runtime win-x64 \
             --self-contained true \
+            -p:DebugType=None \
+            -p:DebugSymbols=false \
             -p:ControllerOSCommit="$CONTROLLEROS_COMMIT" \
             --output artifacts/controlleros-win-x64
+          version="$(dotnet msbuild src/ControllerOS.Cli/ControllerOS.Cli.csproj -getProperty:Version -nologo)"
+          package_name="controlleros-${version}-win-x64"
+          package_dir="$GITHUB_WORKSPACE/artifacts/package/$package_name"
+          mkdir -p "$package_dir/examples"
+          cp -a artifacts/controlleros-win-x64/. "$package_dir/"
+          cp LICENSE DEPENDENCIES.md CONTROLLERSCRIPT.md \
+            "RELEASE_NOTES-v${version}.md" "$package_dir/"
+          cp HARDWARE_CONTRIBUTION.md "$package_dir/README-FIRST.md"
+          cp examples/*.json "$package_dir/examples/"
           cat > artifacts/controlleros-win-x64/BUILD-INFO.txt <<EOF
-          ControllerOS version: 0.2.0-alpha.1
+          ControllerOS version: $version
           Commit: $CONTROLLEROS_COMMIT
           Target: Windows x64, self-contained .NET 10
-          Purpose: experimental community hardware testing
+          Purpose: experimental community preview
           EOF
-          cd artifacts/controlleros-win-x64
-          find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
-      - name: Upload experimental Windows CLI
+          cp artifacts/controlleros-win-x64/BUILD-INFO.txt "$package_dir/BUILD-INFO.txt"
+          (
+            cd "$package_dir"
+            find . -type f ! -name FILE-SHA256SUMS.txt -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > FILE-SHA256SUMS.txt
+            sha256sum -c FILE-SHA256SUMS.txt
+            source_date_epoch="$(git show -s --format=%ct "$CONTROLLEROS_COMMIT")"
+            find . -exec touch -h -d "@${source_date_epoch}" {} +
+            find . -type f -print | LC_ALL=C sort | zip -X -q "$GITHUB_WORKSPACE/artifacts/${package_name}.zip" -@
+          )
+          (
+            cd artifacts
+            sha256sum "${package_name}.zip" > "${package_name}.zip.sha256"
+            sha256sum -c "${package_name}.zip.sha256"
+          )
+      - name: Upload versioned Windows package and checksum
         uses: actions/upload-artifact@v4
         with:
-          name: controlleros-experimental-win-x64-${{ github.sha }}
-          path: artifacts/controlleros-win-x64/
+          name: controlleros-0.1.0-alpha.1-win-x64-${{ github.sha }}
+          path: |
+            artifacts/controlleros-0.1.0-alpha.1-win-x64.zip
+            artifacts/controlleros-0.1.0-alpha.1-win-x64.zip.sha256
           if-no-files-found: error
           retention-days: 30

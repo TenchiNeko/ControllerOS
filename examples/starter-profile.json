@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "South to East remap",
+    "author": "",
+    "description": "A small ControllerScript example for validation and synthetic simulation."
+  },
+  "source": "on press(SOUTH):\n    press(EAST)\non release(SOUTH):\n    release(EAST)\n"
+}

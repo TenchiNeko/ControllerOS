@@ -1,0 +1,41 @@
+name: Bug Report
+description: Report a reproducible ControllerOS problem.
+title: "[bug] "
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Remove usernames, computer names, device paths, serial numbers, IP
+        addresses, credentials, and unrelated logs from diagnostics.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: Number the steps or commands needed to reproduce the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the exact error text when useful.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ControllerOS version and commit
+      placeholder: Copy from controlleros.exe version --json
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Optional sanitized diagnostics
+      description: Attach or paste only the minimum details needed to reproduce the issue.

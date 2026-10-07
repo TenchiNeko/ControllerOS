@@ -20,7 +20,22 @@ public sealed class ControllerOsCliTests
         ParsedCommand devices = CommandLineParser.Parse(["devices", "--json"]);
         Assert.AreEqual("devices", devices.Name);
         Assert.IsTrue(devices.Json);
+        Assert.AreEqual("version", CommandLineParser.Parse(["version"]).Name);
         Assert.ThrowsExactly<CommandLineParseException>(() => CommandLineParser.Parse(["runtime", "start", "profile.json"]));
+    }
+
+    [TestMethod]
+    public async Task VersionCommandReportsBuildIdentityAsJson()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ControllerOsCli.RunAsync(["version", "--json"], TextReader.Null, output, error, new FakeEnumerator([]));
+
+        Assert.AreEqual(0, exitCode);
+        StringAssert.Contains(output.ToString(), "\"version\": \"0.1.0-alpha.1\"");
+        StringAssert.Contains(output.ToString(), "\"commit\": \"unknown\"");
+        Assert.AreEqual(string.Empty, error.ToString());
     }
 
     [TestMethod]

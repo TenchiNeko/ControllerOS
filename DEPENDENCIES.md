@@ -26,6 +26,8 @@ install its signed driver package and requires an elevated Windows process.
 The CI workflow uses `actions/checkout@v4`, `actions/setup-dotnet@v4`, and
 `actions/upload-artifact@v4`. These actions are MIT licensed. Workflow token
 permissions remain `contents: read`; artifact upload uses the Actions artifact
-service and does not need repository contents write access. The published
-artifact includes a SHA-256 manifest and the exact source commit in
-`BUILD-INFO.txt`.
+service and does not need repository contents write access. The versioned
+Windows ZIP includes `FILE-SHA256SUMS.txt`, the application license, the
+pinned dependency's license and third-party notices, and the exact source
+commit in `BUILD-INFO.txt`. The CI artifact also contains a `.zip.sha256`
+sidecar for verifying the downloadable ZIP.
