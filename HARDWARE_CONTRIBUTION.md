@@ -9,7 +9,9 @@ does not need GPU passthrough.
 1. Download
    [ControllerOS 0.1.0-alpha.1 for Windows x64](https://github.com/TenchiNeko/ControllerOS/releases/download/v0.1.0-alpha.1/controlleros-0.1.0-alpha.1-win-x64.zip)
    and the adjacent `.zip.sha256` checksum from the public release page.
-2. In PowerShell, compare the checksum before extracting:
+2. Save both files in **Downloads**. In File Explorer, open Downloads, click
+   the address bar, type `powershell`, and press Enter. Compare the checksum
+   before extracting:
 
    ```powershell
    $expected = (Get-Content .\controlleros-0.1.0-alpha.1-win-x64.zip.sha256 -Raw) -split '\s+' | Select-Object -First 1
